@@ -11,7 +11,7 @@ library(tidyverse)
 library(esquisse)
 
 #### LOAD UP TO DATE TRANSECT DATA ####
-transect <- read_csv(file = "data/phenology/qiki_phen_with_before_2019.txt")
+transect <- read_csv(file = "data/qiki_phen_with_before_2019.txt")
 str(transect)
 
 # Duplicate plot ID and call it 'sex'
@@ -24,12 +24,12 @@ transect$sex <- sub("^([[:alpha:]]*).*", "\\1", transect$sex)
 transect$Plot.ID <- parse_number(transect$Plot.ID)
 
 #### LOAD & CLEAN PHENOCAM DATA ####
-snow <- read_csv(file = "data/phenology/cam_SNOW.csv")
-dryint <- read_csv(file = "data/phenology/cam_DRYINT.csv")
-erivag <- read_csv(file = "data/phenology/cam_ERIVAG.csv")
-salarc <- read_csv(file = "data/phenology/cam_SALARC.csv")
-luparc <- read_csv(file = "data/phenology/cam_LUPARC.csv")
-pedic <- read_csv(file = "data/phenology/cam_PEDIC.csv")
+snow <- read_csv(file = "data/cam_SNOW.csv")
+dryint <- read_csv(file = "data/cam_DRYINT.csv")
+erivag <- read_csv(file = "data/cam_ERIVAG.csv")
+salarc <- read_csv(file = "data/cam_SALARC.csv")
+luparc <- read_csv(file = "data/cam_LUPARC.csv")
+pedic <- read_csv(file = "data/cam_PEDIC.csv")
 
 # the resulting data frames are not of the same size
 # add columns containing NA to allow matching:
@@ -127,7 +127,7 @@ str(pheno_full)
 
 
 #### LOAD PHENOCAM COORDS ####
-pheno_coords <- read_csv(file = "scripts/phenology_scripts/data/phenocam_coords.csv")
+pheno_coords <- read_csv(file = "data/phenocam_coordinates.csv")
 pheno_coords <- pheno_coords %>% 
   mutate(Plot.ID = as.factor(Plot.ID))
 pheno_full <- full_join(pheno_full, pheno_coords,copy=TRUE)
@@ -156,7 +156,7 @@ pheno_long$phase_DATE <- as.numeric(pheno_long$phase_DATE)
 # change year to a num
 # save pheno_full dataset
 #### Save full prop dataset as its own CSV ####
-write.csv(pheno_long, file = "data/phenology/phenology_transect_cam.csv", row.names = FALSE)
+write.csv(pheno_long, file = "data/phenology_transect_cam.csv", row.names = FALSE)
 
 ####  GRAPH EACH SPECIES   ####
 
@@ -186,18 +186,18 @@ snowmelt_plot <- ggplot(transect) +
 (budburst_plot <- budburst_plot + labs(fill = "Species"))
 
 
-snowmelt_v_budburst <- ggplot(transect) +
+(snowmelt_v_budburst <- ggplot(transect) +
   aes(x = P1, y = P2, colour = Spp) +
   geom_point(size = 1L) +
   geom_smooth(span = 0.75) +
   hrbrthemes::scale_fill_ipsum() +
   hrbrthemes::scale_color_ipsum() +
   labs(x = "Date of snow melt (DOY)", y = "Date of bud burst (DOY)", color = "Species") +
-  theme_minimal()
+  theme_minimal())
 
-snowmelt_chronology <- ggplot(transect) +
+(snowmelt_chronology <- ggplot(transect) +
   aes(x = Year, y = P1) +
   geom_point(size = 1L, colour = "#0c4c8a") +
   geom_smooth(span = 0.75) +
-  theme_minimal()
+  theme_minimal())
 
