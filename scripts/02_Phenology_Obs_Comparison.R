@@ -13,7 +13,7 @@ library(ggpubr)
 library(gridExtra)
 
 #### LOAD FULL PHENOLOGY DATA DATA ####
-pheno <- read.csv(file = "data/phenology/phenology_transect_cam.csv")
+pheno <- read.csv(file = "data/phenology_transect_cam.csv")
 
 str(pheno)
 
@@ -366,7 +366,7 @@ anova_pheno <- ggarrange(snow_free,eriobud_plot, drybud_plot,
                          ncol = 3,nrow = 3)
 anova_pheno
 
-ggsave(anova_pheno, filename = "scripts/phenology_scripts/phenocams/anova_phenocam_box.png", height = 10, width = 12)
+ggsave(anova_pheno, filename = "figures/anova_phenocam_box.png", height = 10, width = 12)
 
 #### Overall plot ####
 overall <- pheno %>%
@@ -424,8 +424,10 @@ overall2$plot <- factor (overall2$plot, levels = c("SNOW_P1", "ERIVAG_P1", "ERIV
   aes(x = Year, y = phase_DATE, colour = phase_ID) +
   geom_point(size = 1L) +
   stat_smooth(method = 'lm') +
-  hrbrthemes::scale_color_ft() +
   theme_minimal() +
     labs(x = "Year", y = "DOY", fill = "Phenophase ID") +
     
   facet_wrap(vars(Spp)))
+
+ggsave(fulltimeline_chrono, filename = "figures/QHI_spp_chronto.png", height = 10, width = 12)
+
