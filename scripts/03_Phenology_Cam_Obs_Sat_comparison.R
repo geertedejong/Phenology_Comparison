@@ -14,10 +14,10 @@ library(gridExtra)
 
 
 #### LOAD DATA ####
-pheno <- read.csv(file = "D:/R/TeamShrubHub/data/phenology/phenology_transect_cam.csv")
-s2    <- read.csv(file = "D:/R/TeamShrubHub/data/phenology/S2QHIphenocam.csv")
-ndvi_m <- read.csv(file = "D:/R/TeamShrubHub/data/phenology/NDVI_modis.csv")
-ndsi_m <- read.csv(file = "D:/R/TeamShrubHub/data/phenology/NDSI_modis.csv")
+pheno <- read.csv(file = "data/phenology_transect_cam.csv")
+s2    <- read.csv(file = "data/S2QHIphenocam.csv")
+ndvi_m <- read.csv(file = "data/NDVI_modis.csv")
+ndsi_m <- read.csv(file = "data/NDSI_modis.csv")
 
 str(pheno)
 
@@ -195,15 +195,18 @@ comb_db <- rbind(m_ndsi, m_ndvisf, s2_ndvisf, s2_ndsi)
   geom_smooth(data=s2_ndvisf,aes(x=doi, y=NDVI_20m, color='coral1'),inherit.aes = FALSE) +
   geom_smooth(data=m_ndvisf, aes(x=doy, y=NDVI, color='deepskyblue'),inherit.aes = FALSE) +
   hrbrthemes::scale_fill_ipsum() +
-  geom_vline(xintercept=sf, linetype='dashed')+
-  geom_vline(xintercept=greenup, linetype='dashed')+
-  geom_vline(xintercept=senescence, linetype='dashed')+
+  geom_vline(xintercept=cam_sf, linetype='dashed')+
+  geom_vline(xintercept=cam_greenup, linetype='dashed')+
+  geom_vline(xintercept=cam_senescence, linetype='dashed')+
   xlim(100,300)+
   ylim(0.2,1)+
   labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
   theme_classic() +
   theme(legend.position = "none")
  )
+
+ggsave(comb_plot, filename = "figures/cam_obs_ndvi_greencurv.png", height = 10, width = 12)
+
 #...and NDSI
 (comb_plot <- ggplot()+
     geom_point(data=s2_ndsi, aes(x=doi, y=NDSI_20m, color='coral1'), alpha=0.3, size=1 ,inherit.aes = FALSE)+
@@ -211,11 +214,12 @@ comb_db <- rbind(m_ndsi, m_ndvisf, s2_ndvisf, s2_ndsi)
     geom_smooth(data=s2_ndsi,aes(x=doi, y=NDSI_20m, color='coral1'),inherit.aes = FALSE) +
     geom_smooth(data=m_ndsi, aes(x=doy, y=NDSI, color='deepskyblue'),inherit.aes = FALSE) +
     hrbrthemes::scale_fill_ipsum() +
-    geom_vline(xintercept=sf, linetype='dashed')+
-    geom_vline(xintercept=senescence, linetype='dashed')+
+    geom_vline(xintercept=cam_sf, linetype='dashed')+
+    geom_vline(xintercept=cam_senescence, linetype='dashed')+
     ylim(0.4,1)+
     labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year",inherit.aes = FALSE) +
     theme_classic() +
     theme(legend.position = "none")
 )
 
+ggsave(comb_plot, filename = "figures/cam_obs_ndsi_greencurv.png", height = 10, width = 12)
