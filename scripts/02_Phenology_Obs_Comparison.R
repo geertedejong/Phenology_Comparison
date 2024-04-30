@@ -410,9 +410,11 @@ overall2$plot <- factor (overall2$plot, levels = c("SNOW_P1", "ERIVAG_P1", "ERIV
     hrbrthemes::scale_fill_ipsum() +
     labs(x = "DOY (2016 - 2019)", y = "Phenophase", title = "Phenophase Chronology (Transect [light] vs Phenocam [dark])", fill = "Observation type") +
     scale_alpha_manual(values=c(1, 0.5)) +
-    xlim(125, 270) +
-    theme_classic() +
+    xlim(120,290) +
+    theme_minimal() +
     theme(legend.position = "none"))
+
+ggsave(overall_plot_summeronly, filename = "figures/QHI_spp_chronto_alt.png", height = 10, width = 12)
 
 #### all pheno phases chrono ###
 

@@ -92,6 +92,7 @@ m_ndsi$NDSI <- (m_ndsi$NDSI)*0.0001
    geom_point(aes(color=name))+
    hrbrthemes::scale_fill_ipsum() +
    labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+   
    facet_grid(year~.) +
    theme_classic() +
    theme(legend.position = "none"))
@@ -104,6 +105,8 @@ m_ndsi$NDSI <- (m_ndsi$NDSI)*0.0001
     geom_point(aes(color=year))+
     hrbrthemes::scale_fill_ipsum() +
     labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+    xlim(120,290) +
+    scale_y_continuous(name = NULL, sec.axis = sec_axis(~., name = "NDVI")) +
     theme_classic() +
     theme(legend.position = "none"))
 
