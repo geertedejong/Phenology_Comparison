@@ -1,3 +1,3 @@
 # Phenology_Comparison
 
-Name: Elise Gallois
+Name: Elise Gallois, PhD
