@@ -2,4 +2,4 @@
 
 Name: Geerte de Jong, Elise Gallois, Maude Grenier, Joe Boyle
 
-Description: A comparison of in-situ, phenocam, and remote sensing phenology observations. 
+Description: Phenology quality testing between in-situ, remote sensing and phenocam observations. 
