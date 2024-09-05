@@ -11,6 +11,9 @@ library(tidyverse)
 library(esquisse)
 library(ggpubr)
 library(gridExtra)
+library(hrbrthemes)
+library(purrr)
+library(broom)  
 
 #### LOAD FULL PHENOLOGY DATA DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
@@ -160,213 +163,79 @@ pheno <- pheno %>%
    theme_bw())
 
 #### ANOVA - Frequentist approach ####
+# function to run ANOVA and generate boxplots with stats included
+anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
+  filtered_data <- df %>% 
+    filter(phase_ID == phase_id, Year >= 2016 & Year <= 2019) 
+  
+  if (!is.null(species)) {
+    filtered_data <- filtered_data %>% filter(Spp == species)
+  }
+  
+  anova_result <- aov(phase_DATE ~ obs, data = filtered_data)
+  anova_summary <- tidy(anova_result)
+  
+  # extract  f-statistic and p-value
+  f_statistic <- anova_summary %>% 
+    filter(term == "obs") %>%
+    pull(statistic)
+  p_value <- anova_summary %>% 
+    filter(term == "obs") %>%
+    pull(p.value)
 
-# P1 - Snow Free Date
-
-# filter for only P1
-snowfree <- pheno %>% filter(phase_ID == "P1") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-snowfree_anova <- aov(phase_DATE ~ obs, data = snowfree)
-summary(snowfree_anova)
-
-# boxplot to show distribution 2016-2019
-(snow_free <- snowfree %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
+  annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE) + 10
+  
+  # ggplot function
+  plot <- filtered_data %>%
+    ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
+    geom_boxplot(alpha = 0.8, outlier.colour = NA) + # Add transparency to the boxes
+    geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
     hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "First Day 100% Snow Free", fill = "Observation type") +
+    hrbrthemes::scale_colour_ipsum() +
+    #stat_compare_means(method = "anova") +
+    labs(x = "Observation type", y = "DOY (2016 - 2019)", 
+         title = title, fill = "Observation type") +
     theme_classic() +
-    theme(legend.position = "none"))
+    theme(legend.position = "none") +
+    annotate("text", x = Inf, y = annotation_y, 
+             label = paste("F =", round(f_statistic, 2), "\n p =", format.pval(p_value)), 
+             hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")
+  
+  return(list(plot = plot, summary = anova_summary))
+}
 
-# Eriophorum P2 - Appearance of first flower bud
+# list of all phases
+phases <- list(
+  list(phase_id = "P1", species = NULL, title = "First Day 100% Snow Free"),
+  list(phase_id = "P2", species = "ERIVAG", title = "First E. vaginatum Bud Appearance"),
+  list(phase_id = "P2", species = "DRYINT", title = "First D. integrifolia Bud Appearance"),
+  list(phase_id = "P3", species = "DRYINT", title = "First D. integrifolia Open Flower"),
+  list(phase_id = "P4", species = "DRYINT", title = "First D. integrifolia Petal Shed"),
+  list(phase_id = "P5", species = "DRYINT", title = "First D. integrifolia Twisting of Filament"),
+  list(phase_id = "P2", species = "SALARC", title = "S. arctica First Leaf Bud Burst"),
+  list(phase_id = "P5", species = "SALARC", title = "S. arctica First Leaf Turns Yellow"),
+  list(phase_id = "P6", species = "SALARC", title = "S. arctica Last Leaf Turns Yellow")
+)
 
-# filter for only P2
-eriobud <- pheno %>% filter(Spp %in% "ERIVAG") %>% 
-  filter(phase_ID == "P2") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
+# use function to run analysis for each phenophase and save plots / summaries
+results <- map(phases, function(phase) {
+  anova_boxplot(pheno, phase$phase_id, phase$species, phase$title)
+})
 
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-eriobud_anova <- aov(phase_DATE ~ obs, data = eriobud)
-summary(eriobud_anova)
+#  plots and summaries
+plots <- map(results, "plot")
+anova_summaries <- map_dfr(results, "summary")
 
-# boxplot to show distribution 2016-2019
-(eriobud_plot <- eriobud %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "First E. vaginatum Bud Appearance", fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none"))
+anova_pheno <- ggarrange(plotlist = plots, ncol = 3, nrow = 3)
 
-# Dryas P2 - Appearance of white on first flower buds
+anova_pheno  
 
-# filter for only P2
-drybud <- pheno %>% filter(Spp %in% "DRYINT") %>% 
-  filter(phase_ID == "P2") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
+# save the full panel of ANOVA plots
+ggsave(anova_pheno, filename = "figures/anova_phenocam_box_2024.png", height = 10, width = 12)
 
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-drybud_anova <- aov(phase_DATE ~ obs, data = drybud)
-summary(drybud_anova)
 
-# boxplot to show distribution 2016-2019
-(drybud_plot <- drybud %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "First D. integrifolia Bud Appearance", fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-# Dryas P3 - First open flower
-
-# filter for only P3
-dryopen <- pheno %>% filter(Spp %in% "DRYINT") %>% 
-  filter(phase_ID == "P3") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-dryopen_anova <- aov(phase_DATE ~ obs, data = dryopen)
-summary(dryopen_anova)
-
-# boxplot to show distribution 2016-2019
-(dryopen_plot <- dryopen %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "First D. integrifolia open flower", fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-# Dryas P4 - last petal shed
-
-# filter for only P4
-dryshed <- pheno %>% filter(Spp %in% "DRYINT") %>% 
-  filter(phase_ID == "P4") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-dryshed_anova <- aov(phase_DATE ~ obs, data = dryshed)
-summary(dryshed_anova)
-
-# boxplot to show distribution 2016-2019
-(dryshed_plot <- dryshed %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "First D. integrifolia petal shed", fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-# Dryas P5 - twisting of filament
-
-# filter for only P5
-drytwist <- pheno %>% filter(Spp %in% "DRYINT") %>% 
-  filter(phase_ID == "P5") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-drytwist_anova <- aov(phase_DATE ~ obs, data = drytwist)
-summary(drytwist_anova)
-
-# boxplot to show distribution 2016-2019
-(drytwist_plot <- drytwist %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "First D. integrifolia twisting of filament", fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-# Salix P2 - first leaf bud burst
-
-# filter for only P2
-salbud <- pheno %>% filter(Spp %in% "SALARC") %>% 
-  filter(phase_ID == "P2") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-salbud_anova <- aov(phase_DATE ~ obs, data = salbud)
-summary(salbud_anova)
-
-# boxplot to show distribution 2016-2019
-(salbud_plot <- salbud %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "S. arctica first leaf bud burst", fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-# Salix P5 - first leaf yellowing
-
-# filter for only P5
-salsen1 <- pheno %>% filter(Spp %in% "SALARC") %>% 
-  filter(phase_ID == "P5") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-salsen1_anova <- aov(phase_DATE ~ obs, data = salsen1)
-summary(salsen1_anova)
-
-# boxplot to show distribution 2016-2019
-(salsen1_plot <- salsen1 %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "S. arctica first leaf turns yellow", fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-# Salix P6 - all leaves turn yellow
-
-# filter for only P6
-salsen2 <- pheno %>% filter(Spp %in% "SALARC") %>% 
-  filter(phase_ID == "P6") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# anova (h1 = sig dif between phenocam and transect obs, h0 = no sig dif between obs)
-salsen2_anova <- aov(phase_DATE ~ obs, data = salsen2)
-summary(salsen2_anova)
-
-# boxplot to show distribution 2016-2019
-(salsen2_plot <- salsen2 %>%
-    ggplot() +
-    aes(x = obs, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    stat_compare_means(method = "anova") +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "S. arctica last leaf turns yellow", fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-#### PANEL OF ANOVA PLOTS ####
-
-anova_pheno <- ggarrange(snow_free,eriobud_plot, drybud_plot,
-                         dryopen_plot, dryshed_plot, drytwist_plot,
-                         salbud_plot,salsen1_plot, salsen2_plot,
-                         ncol = 3,nrow = 3)
-anova_pheno
-
-ggsave(anova_pheno, filename = "figures/anova_phenocam_box.png", height = 10, width = 12)
+# Save the ANOVA summary table to a CSV file
+write.csv(anova_summaries, file = "figures/anova_summary.csv", row.names = FALSE)
 
 #### Overall plot ####
 overall <- pheno %>%
