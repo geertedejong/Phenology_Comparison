@@ -21,7 +21,7 @@ shape_data <- st_read(shapefile_path)
 # 2. Create a data frame of coordinates
 coords <- data.frame(
   name = c("P1", "P2", "P3", "P4", "P5", "P6"),  # Names of the points
-  lat = c(69.575599, 69.575698, 69.577812, 69.575149, 69.567507, 69.574829),  # Latitudes
+  lat = c(69.575599, 69.575698, 69.577812, 69.575149, 69.570507, 69.574829),  # Latitudes
   lon = c(-138.906, -138.90525, -138.91276, -138.89453, -138.86711, -138.86305) # Longitudes
 )
 
