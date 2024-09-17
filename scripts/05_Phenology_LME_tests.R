@@ -1,3 +1,9 @@
+### 5. Visualize using LME ###
+### Geerte Fälthammar de Jong, gugeerte@gmail.com ###
+### Phenocam Project with Geerte de Jong, Joe Boyle, Maude Grenier & Elise Gallois ####
+### Date: September 2024 ###
+
+
 # Function to run linear mixed-effects model and generate boxplots with stats included
 lmm_boxplot <- function(df, phase_id, species = NULL, title = "") {
   # Filter data by phenophase and year range
