@@ -27,9 +27,12 @@ str(pheno)
 pheno <- pheno %>% 
   mutate(pheno, phase_ID = fct_recode(phase_ID, "P1" = "S3")) 
 
+pheno_shorter <- pheno %>%
+  filter((obs == "phenocam" & as.numeric(cert) > 2) | obs == "transect")
+
 #### VISUALISE PHENOPHASES BY OBSERVATION TYPE ####
 #
-(pheno_spp_facet <- pheno %>%
+(pheno_spp_facet <- pheno_shorter %>%
    filter(Spp %in% c("DRYINT","SALARC","ERIVAG")) %>%
    filter(Year %in% 
             c("2019", "2018", "2017", "2016")) %>%
@@ -49,7 +52,7 @@ pheno <- pheno %>%
 
 #### VISUALISE PHENOPHASES BY SITE ####
 
-(dryas_site_facet <- pheno %>%
+(dryas_site_facet <- pheno_shorter %>%
    filter(Plot.ID %in% c("1","2","5")) %>%
    filter(Year %in% 
             c("2019", "2018", "2017", "2016")) %>%
@@ -65,7 +68,7 @@ pheno <- pheno %>%
    labs(x = "Phenophase",title = "Dryas Phenophases by Site", y = "DOY (2016-2019)", fill = "Observation type") +
    facet_wrap(vars(Plot.ID, Year)))
 
-(sal_site_facet <- pheno %>%
+(sal_site_facet <- pheno_shorter %>%
     filter(Plot.ID %in% c("1","2","3","4","5","6")) %>%
     filter(Spp %in% "SALARC") %>%
     filter(Year %in% 
@@ -172,6 +175,9 @@ pheno <- pheno %>%
    labs(y = "DOY", title = "Eriophorum Phenophase Shifts (2001 - 2019)", col = "Phenophase") +
    theme_bw())
 
+# filter the dataset to elminate duplicates
+pheno_short <- pheno %>%filter(Year >= 2016 & Year <= 2019)
+
 ## new model attempt with lm instead of anova and year as a fixed effect
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   filtered_data <- df %>% 
@@ -182,13 +188,15 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   }
   
   # Use lm 
-  lm_result <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action=na.omit)
-  lm_summary <- broom.mixed::tidy(lm_result)
+  full_model <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action = na.omit)
+  null_model <- lmer(phase_DATE ~ 1 + (1|Year), data = filtered_data, na.action = na.omit)
   
-  # Extract F-statistic and p-value from lm result (ANOVA table can be used for F-statistics)
-  anova_lm <- anova(lm_result)
-  f_statistic <- anova_lm["obs", "F value"]
-  p_value <- anova_lm["obs", "Pr(>F)"]
+  # Perform likelihood ratio test (LRT) comparing the full model to the null model
+  lrt_result <- anova(full_model, null_model)
+  
+  # Extract Chi-square statistic and p-value from the LRT result
+  chi_square_statistic <- lrt_result[2, "Chisq"]
+  p_value <- lrt_result[2, "Pr(>Chisq)"]
   
   annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE) + 10
   
@@ -204,10 +212,10 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
     theme_classic() +
     theme(legend.position = "none") +
     annotate("text", x = Inf, y = annotation_y, 
-             label = paste("F =", round(f_statistic, 2), "\n p =", format.pval(p_value)), 
+             label = paste("\n p =", format.pval(p_value)), 
              hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")
   
-  return(list(plot = plot, summary = lm_summary))
+  return(list(plot = plot, p_value = p_value))
 }
 
 # List of all phases
@@ -225,12 +233,12 @@ phases <- list(
 
 # Use function to run analysis for each phenophase and save plots / summaries
 results <- map(phases, function(phase) {
-  anova_boxplot(pheno, phase$phase_id, phase$species, phase$title)
+  anova_boxplot(pheno_short, phase$phase_id, phase$species, phase$title)
 })
 
 # Extract plots and summaries
 plots <- map(results, "plot")
-anova_summaries <- map_dfr(results, "summary")
+p_value <- map(results, "p_value")
 
 # Arrange the plots into a grid
 anova_pheno <- ggarrange(plotlist = plots, ncol = 3, nrow = 3)
