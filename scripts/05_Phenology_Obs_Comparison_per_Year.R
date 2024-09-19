@@ -15,6 +15,7 @@ library(hrbrthemes)
 library(purrr)
 library(broom) 
 library(lme4)
+library(lmerTest)
 
 #### LOAD FULL PHENOLOGY DATA DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
@@ -175,7 +176,7 @@ pheno <- pheno %>%
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   filtered_data <- df %>% 
     filter(phase_ID == phase_id, df$Year >= 2016 & df$Year <= 2019) 
-  filtered_data<- filtered_data %>% group_by(obs) %>% filter(!is.na(Year))
+  filtered_data<- filtered_data %>% group_by(Year,Spp) %>%   filter(!is.na(obs))
   if (!is.null(species)) {
     filtered_data <- filtered_data %>% filter(Spp == species)
   }
