@@ -13,7 +13,8 @@ library(ggpubr)
 library(gridExtra)
 library(hrbrthemes)
 library(purrr)
-library(broom)  
+library(broom) 
+library(lme4)
 
 #### LOAD FULL PHENOLOGY DATA DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
@@ -170,9 +171,45 @@ pheno <- pheno %>%
    labs(y = "DOY", title = "Eriophorum Phenophase Shifts (2001 - 2019)", col = "Phenophase") +
    theme_bw())
 
-#### ANOVA - Frequentist approach ####
-# function to run ANOVA and generate boxplots with stats included
-# List of all phenophases with species and titles
+## new model attempt with lm instead of anova and year as a fixed effect
+anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
+  filtered_data <- df %>% 
+    filter(phase_ID == phase_id, df$Year >= 2016 & df$Year <= 2019) 
+  filtered_data<- filtered_data %>% group_by(obs) %>% filter(!is.na(Year))
+  if (!is.null(species)) {
+    filtered_data <- filtered_data %>% filter(Spp == species)
+  }
+  
+  # Use lm 
+  lm_result <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action=na.omit)
+  lm_summary <- broom.mixed::tidy(lm_result)
+  
+  # Extract F-statistic and p-value from lm result (ANOVA table can be used for F-statistics)
+  anova_lm <- anova(lm_result)
+  f_statistic <- anova_lm["obs", "F value"]
+  p_value <- anova_lm["obs", "Pr(>F)"]
+  
+  annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE) + 10
+  
+  # ggplot function
+  plot <- filtered_data %>%
+    ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
+    geom_boxplot(alpha = 0.8, outlier.colour = NA) + # Add transparency to the boxes
+    geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
+    hrbrthemes::scale_fill_ipsum() +
+    hrbrthemes::scale_colour_ipsum() +
+    labs(x = "Observation type", y = "DOY (2016 - 2019)", 
+         title = title, fill = "Observation type") +
+    theme_classic() +
+    theme(legend.position = "none") +
+    annotate("text", x = Inf, y = annotation_y, 
+             label = paste("F =", round(f_statistic, 2), "\n p =", format.pval(p_value)), 
+             hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")
+  
+  return(list(plot = plot, summary = lm_summary))
+}
+
+# List of all phases
 phases <- list(
   list(phase_id = "P1", species = NULL, title = "First Day 100% Snow Free"),
   list(phase_id = "P2", species = "ERIVAG", title = "First E. vaginatum Bud Appearance"),
@@ -185,91 +222,18 @@ phases <- list(
   list(phase_id = "P6", species = "SALARC", title = "S. arctica Last Leaf Turns Yellow")
 )
 
-# Function to expand the list to include each year
-expand_phases_with_years <- function(phases, years) {
-  expanded_list <- list()
-  
-  for (phase in phases) {
-    for (year in years) {
-      expanded_list <- append(expanded_list, list(
-        list(phase_id = phase$phase_id, 
-             species = phase$species, 
-             title = phase$title, 
-             year = year)
-      ))
-    }
-  }
-  
-  return(expanded_list)
-}
-
-# Expand phases to include each year from 2016 to 2019
-expanded_phases <- expand_phases_with_years(phases, 2016:2019)
-
-# Update anova_boxplot to accept a specific year
-anova_boxplot <- function(df, phase_id, species = NULL, title = "", year) {
-  # Filter data for the specific phase and year
-  filtered_data <- df %>% 
-    filter(phase_ID == phase_id, Year == year)
-  
-  if (!is.null(species)) {
-    filtered_data <- filtered_data %>% filter(Spp == species)
-  }
-  
-  # Check if 'obs' has 2 or more levels
-  if (n_distinct(filtered_data$obs) < 2) {
-    return(NULL)  # Return NULL if not enough levels for ANOVA
-  }
-  
-  # Check if there's enough data for ANOVA
-  if (nrow(filtered_data) > 2) {
-    # Run ANOVA
-    anova_result <- aov(phase_DATE ~ obs, data = filtered_data)
-    anova_summary <- tidy(anova_result)
-    
-    # Extract F-statistic and p-value
-    f_statistic <- anova_summary %>% 
-      filter(term == "obs") %>%
-      pull(statistic)
-    p_value <- anova_summary %>% 
-      filter(term == "obs") %>%
-      pull(p.value)
-    
-    annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE) + 10
-    
-    # Create ggplot for the current year
-    plot <- filtered_data %>%
-      ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
-      geom_boxplot(alpha = 0.8, outlier.colour = NA) + 
-      geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
-      hrbrthemes::scale_fill_ipsum() +
-      hrbrthemes::scale_colour_ipsum() +
-      labs(x = "Observation type", y = paste("DOY", year), 
-           title = paste(title, "-", year), fill = "Observation type") +
-      theme_classic() +
-      theme(legend.position = "none") +
-      annotate("text", x = Inf, y = annotation_y, 
-               label = paste("F =", round(f_statistic, 2), "\n p =", format.pval(p_value)), 
-               hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")
-    
-    return(list(plot = plot, summary = anova_summary))
-  }
-  
-  return(NULL)  # Return NULL if there's not enough data for ANOVA
-}
-
-# Run analysis for each expanded phase and year combination
-results <- map(expanded_phases, function(phase) {
-  anova_boxplot(pheno, phase$phase_id, phase$species, phase$title, phase$year)
+# Use function to run analysis for each phenophase and save plots / summaries
+results <- map(phases, function(phase) {
+  anova_boxplot(pheno, phase$phase_id, phase$species, phase$title)
 })
 
-# Extract the plots and summaries
-plots <- map(results, "plot") %>% compact()  # Filter out NULL results
-anova_summaries <- map_dfr(results, "summary", .id = "year_phase") %>% compact()  # Filter out NULL summaries
+# Extract plots and summaries
+plots <- map(results, "plot")
+anova_summaries <- map_dfr(results, "summary")
 
-# Arrange the plots if needed (adjust ncol and nrow based on the number of plots)
-# Example: You can arrange them into a grid
-# anova_pheno <- ggarrange(plotlist = plots, ncol = 4, nrow = 4)
+# Arrange the plots into a grid
+anova_pheno <- ggarrange(plotlist = plots, ncol = 3, nrow = 3)
+
 anova_pheno
 
 # save the full panel of ANOVA plots
