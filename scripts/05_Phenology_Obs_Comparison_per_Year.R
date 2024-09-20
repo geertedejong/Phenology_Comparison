@@ -27,8 +27,6 @@ str(pheno)
 pheno <- pheno %>% 
   mutate(pheno, phase_ID = fct_recode(phase_ID, "P1" = "S3")) 
 
-pheno_shorter <- pheno %>%
-  filter((obs == "phenocam" & as.numeric(cert) > 2) | obs == "transect")
 
 #### VISUALISE PHENOPHASES BY OBSERVATION TYPE ####
 #
@@ -176,65 +174,65 @@ pheno_shorter <- pheno %>%
    theme_bw())
 
 # filter the dataset to elminate duplicates
-pheno_short <- pheno %>%filter(Year >= 2016 & Year <= 2019)
 
-## new model attempt with lm instead of anova and year as a fixed effect
+# Filtering the dataset
+pheno_filtered <- pheno %>%
+  filter(!is.na(phase_DATE))             # Keep rows where phase_DATE is not NA
+
+pheno_filtered <- pheno_filtered[!duplicated(pheno_filtered[c('Year', 'obs', 'Spp', 'Plot.ID', 'Q_ID','cert_ID')]), ]
+
+# Function to generate boxplot and run model
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
-  filtered_data <- df %>% 
-    filter(phase_ID == phase_id, df$Year >= 2016 & df$Year <= 2019) 
-  filtered_data<- filtered_data %>% group_by(Year,Spp) %>%   filter(!is.na(obs))
-  if (!is.null(species)) {
-    filtered_data <- filtered_data %>% filter(Spp == species)
+  # Filter the data for the correct phase and year range, but keep both 'transect' and 'phenocam'
+  filtered_data <- df %>%
+    filter(Year >= 2016, Year <= 2019) # First, filter by year
+
+  # Debugging: Print filtered data summary
+  print(paste("Phase:", phase_id, "Species:", ifelse(is.null(species), "All", species)))
+  print(paste("Number of rows:", nrow(filtered_data)))
+  print(paste("Unique obs:", unique(filtered_data$obs)))
+  
+  # Check if the filtered data is empty or obs has less than 2 levels
+  if (nrow(filtered_data) > 0 && length(unique(filtered_data$obs)) > 1) {
+    # Use lmer for mixed model
+    full_model <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action = na.omit)
+    null_model <- lmer(phase_DATE ~ 1 + (1|Year), data = filtered_data, na.action = na.omit)
+    
+    # Likelihood ratio test
+    lrt_result <- anova(full_model, null_model)
+    chi_square_statistic <- lrt_result[2, "Chisq"]
+    p_value <- lrt_result[2, "Pr(>Chisq)"]
+    
+    annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE)
+    
+    # ggplot function
+    plot <- filtered_data %>%
+      ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
+      geom_boxplot(alpha = 0.8, outlier.colour = NA) +
+      geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
+      hrbrthemes::scale_fill_ipsum() +
+      hrbrthemes::scale_colour_ipsum() +
+      labs(x = "Observation type", y = "DOY (2016 - 2019)", 
+           title = title, fill = "Observation type") +
+      theme_classic() +
+      theme(legend.position = "none") +
+      annotate("text", x = Inf, y = annotation_y, 
+               label = paste("\n p =", format.pval(p_value)), 
+               hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")
+    
+    return(list(plot = plot, p_value = p_value))
+  } else {
+    # Return an empty plot if there are insufficient levels or no data
+    print("Insufficient data or only one level of obs, returning empty plot.")
+    return(list(plot = ggplot() + geom_blank(), p_value = NA))
   }
-  
-  # Use lm 
-  full_model <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action = na.omit)
-  null_model <- lmer(phase_DATE ~ 1 + (1|Year), data = filtered_data, na.action = na.omit)
-  
-  # Perform likelihood ratio test (LRT) comparing the full model to the null model
-  lrt_result <- anova(full_model, null_model)
-  
-  # Extract Chi-square statistic and p-value from the LRT result
-  chi_square_statistic <- lrt_result[2, "Chisq"]
-  p_value <- lrt_result[2, "Pr(>Chisq)"]
-  
-  annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE) + 10
-  
-  # ggplot function
-  plot <- filtered_data %>%
-    ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
-    geom_boxplot(alpha = 0.8, outlier.colour = NA) + # Add transparency to the boxes
-    geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
-    hrbrthemes::scale_fill_ipsum() +
-    hrbrthemes::scale_colour_ipsum() +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", 
-         title = title, fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none") +
-    annotate("text", x = Inf, y = annotation_y, 
-             label = paste("\n p =", format.pval(p_value)), 
-             hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")
-  
-  return(list(plot = plot, p_value = p_value))
 }
 
-# List of all phases
-phases <- list(
-  list(phase_id = "P1", species = NULL, title = "First Day 100% Snow Free"),
-  list(phase_id = "P2", species = "ERIVAG", title = "First E. vaginatum Bud Appearance"),
-  list(phase_id = "P2", species = "DRYINT", title = "First D. integrifolia Bud Appearance"),
-  list(phase_id = "P3", species = "DRYINT", title = "First D. integrifolia Open Flower"),
-  list(phase_id = "P4", species = "DRYINT", title = "First D. integrifolia Petal Shed"),
-  list(phase_id = "P5", species = "DRYINT", title = "First D. integrifolia Twisting of Filament"),
-  list(phase_id = "P2", species = "SALARC", title = "S. arctica First Leaf Bud Burst"),
-  list(phase_id = "P5", species = "SALARC", title = "S. arctica First Leaf Turns Yellow"),
-  list(phase_id = "P6", species = "SALARC", title = "S. arctica Last Leaf Turns Yellow")
-)
-
-# Use function to run analysis for each phenophase and save plots / summaries
+# Run the modified function on phases
 results <- map(phases, function(phase) {
-  anova_boxplot(pheno_short, phase$phase_id, phase$species, phase$title)
+  anova_boxplot(pheno_filtered, phase$phase_id, phase$species, phase$title)
 })
+
 
 # Extract plots and summaries
 plots <- map(results, "plot")
@@ -244,6 +242,8 @@ p_value <- map(results, "p_value")
 anova_pheno <- ggarrange(plotlist = plots, ncol = 3, nrow = 3)
 
 anova_pheno
+
+
 
 # save the full panel of ANOVA plots
 ggsave(anova_pheno, filename = "figures/anova_phenocam_box_2024.png", height = 10, width = 12)
