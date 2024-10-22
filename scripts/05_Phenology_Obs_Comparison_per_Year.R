@@ -30,7 +30,7 @@ pheno <- pheno %>%
 
 #### VISUALISE PHENOPHASES BY OBSERVATION TYPE ####
 #
-(pheno_spp_facet <- pheno_shorter %>%
+(pheno_spp_facet <- pheno %>%
    filter(Spp %in% c("DRYINT","SALARC","ERIVAG")) %>%
    filter(Year %in% 
             c("2019", "2018", "2017", "2016")) %>%
@@ -50,7 +50,7 @@ pheno <- pheno %>%
 
 #### VISUALISE PHENOPHASES BY SITE ####
 
-(dryas_site_facet <- pheno_shorter %>%
+(dryas_site_facet <- pheno %>%
    filter(Plot.ID %in% c("1","2","5")) %>%
    filter(Year %in% 
             c("2019", "2018", "2017", "2016")) %>%
@@ -66,7 +66,7 @@ pheno <- pheno %>%
    labs(x = "Phenophase",title = "Dryas Phenophases by Site", y = "DOY (2016-2019)", fill = "Observation type") +
    facet_wrap(vars(Plot.ID, Year)))
 
-(sal_site_facet <- pheno_shorter %>%
+(sal_site_facet <- pheno %>%
     filter(Plot.ID %in% c("1","2","3","4","5","6")) %>%
     filter(Spp %in% "SALARC") %>%
     filter(Year %in% 
@@ -179,7 +179,7 @@ pheno <- pheno %>%
 pheno_filtered <- pheno %>%
   filter(!is.na(phase_DATE))             # Keep rows where phase_DATE is not NA
 
-pheno_filtered <- pheno_filtered[!duplicated(pheno_filtered[c('Year', 'obs', 'Spp', 'Plot.ID', 'Q_ID','cert_ID')]), ]
+pheno_filtered <- pheno_filtered[!duplicated(pheno_filtered[c('Year', 'obs', 'Spp', 'Plot.ID', 'ind.ID','phase_ID')]), ]
 
 # Function to generate boxplot and run model
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
