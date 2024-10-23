@@ -179,9 +179,9 @@ pheno <- pheno %>%
 pheno_filtered <- pheno %>%
   filter(!is.na(phase_DATE))             # Keep rows where phase_DATE is not NA
 
-pheno_filtered <- pheno_filtered[!duplicated(pheno_filtered[c('Year', 'obs', 'Spp', 'Plot.ID','Q_ID','cert_ID')]), ]
-pheno_filtered <-  group_by(pheno_filtered,'ind.ID')%>%
-  group_by(pheno_filtered,'phase_ID')
+pheno <- pheno %>% select(-Q_ID)
+# i want to remove duplicates in pheno
+pheno_clean <- pheno[!duplicated(pheno[c('Spp', 'Plot.ID', 'Year', 'ind.ID', 'phase_ID', 'phase_DATE')]), ]
 
 # Function to generate boxplot and run model
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
@@ -232,7 +232,7 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
 
 # Run the modified function on phases
 results <- map(phases, function(phase) {
-  anova_boxplot(pheno_filtered, phase$phase_id, phase$species, phase$title)
+  anova_boxplot(pheno_clean, phase$phase_id, phase$species, phase$title)
 })
 
 
