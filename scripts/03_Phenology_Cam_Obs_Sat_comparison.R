@@ -226,3 +226,4 @@ ggsave(comb_plot, filename = "figures/cam_obs_ndvi_greencurv.png", height = 10, 
 )
 
 ggsave(comb_plot, filename = "figures/cam_obs_ndsi_greencurv.png", height = 10, width = 12)
+
