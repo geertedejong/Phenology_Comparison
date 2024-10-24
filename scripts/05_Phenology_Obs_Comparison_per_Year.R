@@ -203,10 +203,12 @@ phases <- list(
 
 # Function to generate boxplot and run model
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
-  # Filter the data for the correct phase and year range, but keep both 'transect' and 'phenocam'
+  # Filter the data for the correct phase and year range, and filter by species
   filtered_data <- df %>%
-    filter(Year >= 2016, Year <= 2019) # First, filter by year
-
+    filter(phase_ID == phase_id,  # Filter by phase ID
+           Year >= 2016, Year <= 2019,  # Filter by year range
+           if (!is.null(species)) Spp == species else TRUE)  # filter by species
+  
   # Debugging: Print filtered data summary
   print(paste("Phase:", phase_id, "Species:", ifelse(is.null(species), "All", species)))
   print(paste("Number of rows:", nrow(filtered_data)))
@@ -248,7 +250,8 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   }
 }
 
-# Run the modified function on phases
+
+# Run the function on phases
 results <- map(phases, function(phase) {
   anova_boxplot(pheno_clean, phase$phase_id, phase$species, phase$title)
 })
