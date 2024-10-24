@@ -240,7 +240,7 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
       theme(legend.position = "none") +
       annotate("text", x = Inf, y = annotation_y, 
                label = paste("\n p =", format.pval(p_value)), 
-               hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")
+               hjust = 1.1, vjust = 0.3, size = 4, color = "black", fontface = "italic")
     
     return(list(plot = plot, p_value = p_value))
   } else {
