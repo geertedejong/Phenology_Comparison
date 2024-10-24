@@ -19,13 +19,18 @@ library(lmerTest)
 
 #### LOAD FULL PHENOLOGY DATA DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
+pheno_clean <- read.csv(file = "data/phenology_transect_cam_CLEAN.csv")
 
-str(pheno)
+str(pheno_clean)
 
 #### SNOW FREE DAY - S3 to P1 ####
 # rename column s3 to p1 to match transect data
 pheno <- pheno %>% 
   mutate(pheno, phase_ID = fct_recode(phase_ID, "P1" = "S3")) 
+
+
+pheno_clean <- pheno_clean %>% 
+  mutate(pheno_clean, phase_ID = fct_recode(phase_ID, "P1" = "S3")) 
 
 
 #### VISUALISE PHENOPHASES BY OBSERVATION TYPE ####
@@ -176,12 +181,25 @@ pheno <- pheno %>%
 # filter the dataset to elminate duplicates
 
 # Filtering the dataset
-pheno_filtered <- pheno %>%
+pheno_filtered <- pheno_clean %>%
   filter(!is.na(phase_DATE))             # Keep rows where phase_DATE is not NA
 
 pheno <- pheno %>% select(-Q_ID)
 # i want to remove duplicates in pheno
 pheno_clean <- pheno[!duplicated(pheno[c('Spp', 'Plot.ID', 'Year', 'ind.ID', 'phase_ID', 'phase_DATE')]), ]
+
+# list of all phases
+phases <- list(
+  list(phase_id = "P1", species = NULL, title = "First Day 100% Snow Free"),
+  list(phase_id = "P2", species = "ERIVAG", title = "First E. vaginatum Bud Appearance"),
+  list(phase_id = "P2", species = "DRYINT", title = "First D. integrifolia Bud Appearance"),
+  list(phase_id = "P3", species = "DRYINT", title = "First D. integrifolia Open Flower"),
+  list(phase_id = "P4", species = "DRYINT", title = "First D. integrifolia Petal Shed"),
+  list(phase_id = "P5", species = "DRYINT", title = "First D. integrifolia Twisting of Filament"),
+  list(phase_id = "P2", species = "SALARC", title = "S. arctica First Leaf Bud Burst"),
+  list(phase_id = "P5", species = "SALARC", title = "S. arctica First Leaf Turns Yellow"),
+  list(phase_id = "P6", species = "SALARC", title = "S. arctica Last Leaf Turns Yellow")
+)
 
 # Function to generate boxplot and run model
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
