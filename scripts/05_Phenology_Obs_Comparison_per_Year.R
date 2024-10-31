@@ -16,6 +16,7 @@ library(purrr)
 library(broom) 
 library(lme4)
 library(lmerTest)
+library(ggpattern)
 
 #### LOAD FULL PHENOLOGY DATA DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
@@ -35,7 +36,7 @@ pheno_clean <- pheno_clean %>%
 
 #### VISUALISE PHENOPHASES BY OBSERVATION TYPE ####
 #
-(pheno_spp_facet <- pheno %>%
+(pheno_spp_facet <- pheno_clean %>%
    filter(Spp %in% c("DRYINT","SALARC","ERIVAG")) %>%
    filter(Year %in% 
             c("2019", "2018", "2017", "2016")) %>%
@@ -55,7 +56,7 @@ pheno_clean <- pheno_clean %>%
 
 #### VISUALISE PHENOPHASES BY SITE ####
 
-(dryas_site_facet <- pheno %>%
+(dryas_site_facet <- pheno_clean %>%
    filter(Plot.ID %in% c("1","2","5")) %>%
    filter(Year %in% 
             c("2019", "2018", "2017", "2016")) %>%
@@ -71,7 +72,7 @@ pheno_clean <- pheno_clean %>%
    labs(x = "Phenophase",title = "Dryas Phenophases by Site", y = "DOY (2016-2019)", fill = "Observation type") +
    facet_wrap(vars(Plot.ID, Year)))
 
-(sal_site_facet <- pheno %>%
+(sal_site_facet <- pheno_clean %>%
     filter(Plot.ID %in% c("1","2","3","4","5","6")) %>%
     filter(Spp %in% "SALARC") %>%
     filter(Year %in% 
@@ -88,7 +89,7 @@ pheno_clean <- pheno_clean %>%
     facet_wrap(vars(Plot.ID, Year)))
 
 
-(eri_site_facet <- pheno %>%
+(eri_site_facet <- pheno_clean %>%
     filter(Plot.ID %in% c("1","3","6")) %>%
     filter(Spp %in% "ERIVAG") %>%
     filter(Year %in% 
@@ -104,45 +105,9 @@ pheno_clean <- pheno_clean %>%
     labs(x = "Phenophase",title = "Eriophorum Phenophases by Site", y = "DOY (2016-2019)", fill = "Observation type") +
     facet_wrap(vars(Plot.ID, Year)))
 
-#### CERTAINTY PLOTS ####
 
-(cert_bar_dry <- pheno %>%
-   filter(Spp %in% c("DRYINT")) %>%
-   filter(obs %in% "phenocam") %>%
-   filter(Year %in% 
-            c("2019", "2018", "2017", "2016")) %>%
-   filter(sex %in% c("F", "M") | is.na(sex)) %>%
-   filter(!(cert_ID %in% c("Q1_Cert", 
-                           "Q2_Cert", "Q3-M_Cert", "Q3-F_Cert"))) %>%
-   filter(!(cert %in% "N") & !is.na(cert)) %>%
-   ggplot() +
-   aes(x = cert_ID, fill = cert) +
-   geom_bar() +
-   coord_flip() +
-   scale_fill_viridis_d(option = "plasma") +
-   labs(x = "Phenophase", y = "Count", fill = "Certainty Index ") +
-   theme_classic() +
-   facet_wrap(vars(Spp, Year)))
-
-(cert_bar_sal <- pheno %>%
-    filter(Spp %in% c("SALARC")) %>%
-    filter(obs %in% "phenocam") %>%
-    filter(Year %in% 
-             c("2019", "2018", "2017", "2016")) %>%
-    filter(sex %in% c("F", "M") | is.na(sex)) %>%
-    filter(!(cert_ID %in% c("Q1_Cert", 
-                            "Q2_Cert", "Q3-M_Cert", "Q3-F_Cert"))) %>%
-    filter(!(cert %in% "N") & !is.na(cert)) %>%
-    ggplot() +
-    aes(x = cert_ID, fill = cert) +
-    geom_bar() +
-    coord_flip() +
-    scale_fill_viridis_d(option = "plasma") +
-    labs(x = "Phenophase", y = "Count", fill = "Certainty Index ") +
-    theme_classic() +
-    facet_wrap(vars(Spp, Year)))
 #### ALL DRYAS OBS ####
-(dryas_timeline <- pheno %>%
+(dryas_timeline <- pheno_clean %>%
    filter(Spp %in% "DRYINT") %>%
    filter(phase_ID %in% c("P1", "P2", "P3", "P4", "P5", "P6", "P7")) %>%
    ggplot() +
@@ -155,7 +120,7 @@ pheno_clean <- pheno_clean %>%
 
 
 #### ALL SALIX OBS ####
-(salix_timeline <- pheno %>%
+(salix_timeline <- pheno_clean %>%
    filter(Spp %in% "SALARC") %>%
    filter(phase_ID %in% c("P1", "P2", "P3", "P4", "P5", "P6", "P7")) %>%
    ggplot() +
@@ -167,7 +132,7 @@ pheno_clean <- pheno_clean %>%
    theme_bw())
 
 #### ALL ERIOPHORUM OBS ####
-(eri_timeline <- pheno %>%
+(eri_timeline <- pheno_clean %>%
    filter(Spp %in% "ERIVAG") %>%
    filter(phase_ID %in% c("P1", "P2", "P3")) %>%
    ggplot() +
@@ -272,11 +237,8 @@ anova_pheno
 ggsave(anova_pheno, filename = "figures/anova_phenocam_box_2024.png", height = 10, width = 12)
 
 
-# Save the ANOVA summary table to a CSV file
-write.csv(anova_summaries, file = "figures/anova_summary.csv", row.names = FALSE)
-
 #### Overall plot ####
-overall <- pheno %>%
+overall <- pheno_clean %>%
   filter(Year >= 2016L & Year <= 2019L) %>%
   filter(phase_ID %in% c("P1", "P2", "P3", "P4", "P5", "P6", "P7")) %>%
   filter(Spp %in% c("ERIVAG", "SALARC", "DRYINT","SNOW")) %>%
@@ -287,41 +249,56 @@ overall2 <- overall %>%
   unite(plot,Spp2, phase_ID)
 
 # boxplot to show distribution 2016-2019
-(overall_plot <- overall2 %>%
-    ggplot() +
-    aes(x = plot, y = phase_DATE, fill = Spp, alpha = obs) +
+# Set factor levels
+overall2$plot <- factor(overall2$plot, 
+                        levels = c("SNOW_P1", "ERIVAG_P1", "ERIVAG_P2", "ERIVAG_P3", "DRYINT_P1", "DRYINT_P2", 
+                                   "DRYINT_P3", "DRYINT_P4", "DRYINT_P5", "DRYINT_P6", "SALARC_P1", "SALARC_P2", 
+                                   "SALARC_P3", "SALARC_P4", "SALARC_P5", "SALARC_P6", "SALARC_P7"))
+
+# General plot function
+plot_boxplot <- function(data, x_var, y_var, x_limits = NULL, title = "Phenology stuff", xlabel = "DOY (2016 - 2019)", ylabel = "Phenophase") {
+  data %>%
+    ggplot(aes(x = {{ x_var }}, y = {{ y_var }}, fill = Spp, alpha = obs)) +
     geom_boxplot() +
     hrbrthemes::scale_fill_ipsum() +
-    labs(x = "Observation type", y = "DOY (2016 - 2019)", title = "Phenology stuff", fill = "Observation type") +
-    scale_alpha_manual(values=c(1, 0.5)) +
+    scale_alpha_manual(values = c(1, 0.5)) +
+    labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
     theme_classic() +
-    theme(legend.position = "none"))
+    theme(legend.position = "none") +
+    { if (!is.null(x_limits)) xlim(x_limits) else NULL }
+}
+
+# Full date range plot
+overall_plot <- plot_boxplot(overall2, phase_DATE, plot)
 overall_plot + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-overall2$plot <- factor (overall2$plot, levels = c("SNOW_P1", "ERIVAG_P1", "ERIVAG_P2", "ERIVAG_P3", "DRYINT_P1", "DRYINT_P2", "DRYINT_P3", "DRYINT_P4", "DRYINT_P5", "DRYINT_P6", "SALARC_P1", "SALARC_P2", "SALARC_P3", "SALARC_P4", "SALARC_P5", "SALARC_P6", "SALARC_P7")) 
-(overall_plot <- overall2 %>%
-    ggplot() +
-    aes(x = phase_DATE, y = plot, fill = Spp, alpha = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    labs(x = "DOY (2016 - 2019)", y = "Phenophase", title = "Phenology stuff", fill = "Observation type") +
-    scale_alpha_manual(values=c(1, 0.5)) +
-    xlim(0, 365) +
-    theme_classic() +
-    theme(legend.position = "none"))
+# Summer-only plot
+overall_plot_summeronly <- plot_boxplot(overall2, phase_DATE, plot, x_limits = c(120, 290), 
+                                        title = "Phenophase Chronology (Transect [light] vs Phenocam [dark])")
 
-(overall_plot_summeronly <- overall2 %>%
-    ggplot() +
-    aes(x = phase_DATE, y = plot, fill = Spp, alpha = obs) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    labs(x = "DOY (2016 - 2019)", y = "Phenophase", title = "Phenophase Chronology (Transect [light] vs Phenocam [dark])", fill = "Observation type") +
-    scale_alpha_manual(values=c(1, 0.5)) +
-    xlim(120,290) +
-    theme_minimal() +
-    theme(legend.position = "none"))
-
+# Save summer-only plot
 ggsave(overall_plot_summeronly, filename = "figures/QHI_spp_chronto_alt.png", height = 10, width = 12)
+
+
+### test
+library(RColorBrewer) # Load the library for color palettes
+
+plot_boxplot <- function(data, x_var, y_var, x_limits = NULL, title = "Phenology stuff", xlabel = "DOY (2016 - 2019)", ylabel = "Phenophase") {
+  data %>%
+    ggplot(aes(x = {{ x_var }}, y = {{ y_var }}, fill = interaction(Spp, obs))) +
+    geom_boxplot() +
+    scale_fill_brewer(palette = "Set2") + # Use a qualitative palette that adapts to number of groups
+    scale_alpha_manual(values = c(1, 0.5)) +
+    labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
+    theme_classic() +
+    theme(legend.position = "right") +
+    { if (!is.null(x_limits)) xlim(x_limits) else NULL }
+}
+
+
+### end test
+
+
 
 #### all pheno phases chrono ###
 

@@ -12,7 +12,6 @@ library(esquisse)
 library(ggpubr)
 library(gridExtra)
 
-
 #### LOAD DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
 s2    <- read.csv(file = "data/S2QHIphenocam.csv")
