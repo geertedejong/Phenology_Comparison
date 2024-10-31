@@ -197,61 +197,36 @@ overall_plot_summeronly
 #### Figure 2 Satellites and snow-free obs ####
 
 s2    <- read.csv(file = "data/S2QHIphenocam.csv")
-ndvi_m <- read.csv(file = "data/NDVI_modis.csv")
-ndsi_m <- read.csv(file = "data/NDSI_modis.csv")
 
-# filter for only P1
-snowfree <- pheno %>% filter(phase_ID == "P1") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
+## prep dash lines
+# filter for snow free on camera
+snowfree16 <- pheno %>% filter(phase_ID == "P1") %>%
+  filter(Year== 2016L) 
+snowfree17 <- pheno %>% filter(phase_ID == "P1") %>%
+  filter(Year== 2017L)
+snowfree18 <- pheno %>% filter(phase_ID == "P1") %>%
+  filter(Year== 2018L)
+snowfree19 <- pheno %>% filter(phase_ID == "P1") %>%
+  filter(Year== 2019L)
 
-# filter for only P2
-eriobud <- pheno %>% filter(Spp %in% "ERIVAG") %>% 
-  filter(phase_ID == "P2") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
 
-# filter for only P2
-drybud <- pheno %>% filter(Spp %in% "DRYINT") %>% 
-  filter(phase_ID == "P2") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# filter for only P3
-dryopen <- pheno %>% filter(Spp %in% "DRYINT") %>% 
-  filter(phase_ID == "P3") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# filter for only P4
-dryshed <- pheno %>% filter(Spp %in% "DRYINT") %>% 
-  filter(phase_ID == "P4") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# filter for only P5
-drytwist <- pheno %>% filter(Spp %in% "DRYINT") %>% 
-  filter(phase_ID == "P5") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# filter for only P2
-salbud <- pheno %>% filter(Spp %in% "SALARC") %>% 
-  filter(phase_ID == "P2") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# filter for only P5
-salsen1 <- pheno %>% filter(Spp %in% "SALARC") %>% 
-  filter(phase_ID == "P5") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
-
-# filter for only P5
-salsen2 <- pheno %>% filter(Spp %in% "SALARC") %>% 
+# filter for senescence
+salsen2_16 <- pheno %>% filter(Spp %in% "SALARC") %>% 
   filter(phase_ID == "P6") %>%
-  filter(Year >= 2016L & Year <= 2019L) 
+  filter(Year ==2016L) 
+salsen2_17 <- pheno %>% filter(Spp %in% "SALARC") %>% 
+  filter(phase_ID == "P6") %>%
+  filter(Year ==2017L) 
+salsen2_18 <- pheno %>% filter(Spp %in% "SALARC") %>% 
+  filter(phase_ID == "P6") %>%
+  filter(Year ==2018L) 
+salsen1_19 <- pheno %>% filter(Spp %in% "SALARC") %>% 
+  filter(phase_ID == "P5") %>%
+  filter(Year ==2019L) 
 
 
 #### some cleaning ####
-s2_ndvisf<- subset(s2, NDVI_20m>0.1) #remove all NDVI values below o.2 to exclude negatives and snow
-s2_ndsi <- subset(s2, NDSI_20m>0.4)
-
-m_ndvisf<- subset(ndvi_m, NDVI>0.1) #remove all NDVI values below o.2 to exclude negatives and snow
-m_ndsi <- subset(ndsi_m, NDSI>4000)
-m_ndsi$NDSI <- (m_ndsi$NDSI)*0.0001
+s2_ndvisf<- subset(s2, NDVI_20m>0.1) #remove all NDVI values below o.1 to exclude negatives and snow
 
 #### Exploration plot of S2 data ####
 # NDVI
@@ -305,78 +280,33 @@ m_ndsi$NDSI <- (m_ndsi$NDSI)*0.0001
     theme_classic() +
     theme(legend.position = "none"))
 
-#### Exploration plot of MODIS data ####
-# NDVI
-# average geom smooth and colors for camera locations, separate years
-(m_plot <- m_ndvisf %>%
-   ggplot() +
-   aes(x = doy, y = NDVI) +
-   geom_smooth() +
-   geom_point(aes(color=name))+
-   hrbrthemes::scale_fill_ipsum() +
-   labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
-   facet_grid(year~.) +
-   theme_classic() +
-   theme(legend.position = "none"))
-
-# average geom smooth and colors for camera locations, average for all years
-(m_plot <- m_ndvisf %>%
-    ggplot() +
-    aes(x = doy, y = NDVI) +
-    geom_smooth() +
-    geom_point(aes(color=year))+
-    hrbrthemes::scale_fill_ipsum() +
-    labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-# NDSI
-# average geom smooth and colors for camera locations, separate years
-(m_plot <- m_ndsi %>%
-    ggplot() +
-    aes(x = doy, y = NDSI) +
-    geom_smooth() +
-    geom_point(aes(color=name))+
-    hrbrthemes::scale_fill_ipsum() +
-    labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year") +
-    facet_grid(year~.) +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-# average geom smooth and colors for camera locations, average for all years
-(m_plot <- m_ndsi %>%
-    ggplot() +
-    aes(x = doy, y = NDSI) +
-    geom_smooth() +
-    geom_point(aes(color=year))+
-    hrbrthemes::scale_fill_ipsum() +
-    labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year") +
-    theme_classic() +
-    theme(legend.position = "none"))
-
-#### combination plot S2 and MODIS ####
-comb_db <- rbind(m_ndsi, m_ndvisf, s2_ndvisf, s2_ndsi)
-
 # NB run 02_Phenology_Obs_Comparison script first to load data into environment
-(cam_sf <- min(snowfree$phase_DATE, na.rm=TRUE))
-(cam_greenup <- min(dryopen$phase_DATE, na.rm=TRUE))
-(cam_senescence <- max(salsen2$phase_DATE, na.rm=TRUE))
+(cam_sf16 <- min(snowfree16$phase_DATE, na.rm=TRUE))
+(cam_sf17 <- min(snowfree17$phase_DATE, na.rm=TRUE))
+(cam_sf18 <- min(snowfree18$phase_DATE, na.rm=TRUE))
+(cam_sf19 <- min(snowfree19$phase_DATE, na.rm=TRUE))
+(cam_senescence16 <- max(salsen2_16$phase_DATE, na.rm=TRUE))
+(cam_senescence17 <- max(salsen2_17$phase_DATE, na.rm=TRUE))
+(cam_senescence18 <- max(salsen2_18$phase_DATE, na.rm=TRUE))
+(cam_senescence19 <- max(salsen1_19$phase_DATE, na.rm=TRUE))
 
 #### combination plot of cams, obs and NDVI ####
 (comb_plot <- ggplot()+
-   geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color='coral1'), alpha=0.3, size=1 ,inherit.aes = FALSE)+
-   geom_point(data=m_ndvisf, aes(x=doy, y=NDVI, color='deepskyblue'), alpha=0.3, size=1,inherit.aes = FALSE)+
-   geom_smooth(data=s2_ndvisf,aes(x=doi, y=NDVI_20m, color='coral1'),inherit.aes = FALSE) +
-   geom_smooth(data=m_ndvisf, aes(x=doy, y=NDVI, color='deepskyblue'),inherit.aes = FALSE) +
-   hrbrthemes::scale_fill_ipsum() +
-   geom_vline(xintercept=cam_sf, linetype='dashed')+
-   geom_vline(xintercept=cam_greenup, linetype='dashed')+
-   geom_vline(xintercept=cam_senescence, linetype='dashed')+
+   geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color=factor(year)), alpha=0.3, size=1)+
+   geom_smooth(data=s2_ndvisf,aes(x=doi, y=NDVI_20m, color=factor(year))) +
+   hrbrthemes::scale_color_ipsum() +
+   geom_vline(xintercept=cam_sf16, linetype='dashed',color='orange')+
+   geom_vline(xintercept=cam_senescence16, linetype='dashed',color='orange')+
+   geom_vline(xintercept=cam_sf17, linetype='dashed',color='green')+
+   geom_vline(xintercept=cam_senescence17, linetype='dashed',color='green')+
+   geom_vline(xintercept=cam_sf18, linetype='dashed',color='purple')+
+   geom_vline(xintercept=cam_senescence18, linetype='dashed',color='purple')+
+   geom_vline(xintercept=cam_sf19, linetype='dashed',color='blue')+
    xlim(100,300)+
-   ylim(0.2,1)+
-   labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+   ylim(0.1,1)+
+   labs(y = "NDVI", x = "DOY (2016 - 2019)", color= "year") +
    theme_classic() +
-   theme(legend.position = "none")
+   theme(legend.position = "right")
 )
 
 ggsave(comb_plot, filename = "figures/cam_obs_ndvi_greencurv.png", height = 10, width = 12)
