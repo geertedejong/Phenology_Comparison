@@ -17,6 +17,8 @@ library(broom)
 library(lme4)
 library(lmerTest)
 library(ggpattern)
+library(forcats)
+library(RColorBrewer)
 
 #### LOAD FULL PHENOLOGY DATA DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
@@ -281,19 +283,49 @@ ggsave(overall_plot_summeronly, filename = "figures/QHI_spp_chronto_alt.png", he
 
 
 ### test
-library(RColorBrewer) # Load the library for color palettes
+
+# Rename levels using fct_recode
+overall2$plot <- fct_recode(overall2$plot,
+                            "Snow Free Plot" = "SNOW_P1",
+                            "E.Vag.Snow Free" = "ERIVAG_P1",
+                            "E.Vag. First Flower Bud" = "ERIVAG_P2",
+                            "E.Vag. First Pollen visible" = "ERIVAG_P3",
+                            "Dry.Int. Snow Free" = "DRYINT_P1",
+                            "Dry.Int. First White on Bud" = "DRYINT_P2",
+                            "Dry.Int. First Open Flower" = "DRYINT_P3",
+                            "Dry.Int. Last Petal Shed" = "DRYINT_P4",
+                            "Dry.Int. First Twisting of Filaments" = "DRYINT_P5",
+                            "Dry.Int. All leaves dead" = "DRYINT_P6",
+                            "Sal.Arc. Snow Free" = "SALARC_P1",
+                            "Sal.Arc. First Leaf Bud Burst " = "SALARC_P2",
+                            "Sal.Arc. First Pollen" = "SALARC_P3",
+                            "Sal.Arc. Onset Seed Dispersal" = "SALARC_P4",
+                            "Sal.Arc. First Yellow Leaf" = "SALARC_P5",
+                            "Sal.Arc. Last Green Leaf" = "SALARC_P6",
+                            "Sal.Arc. All Leaves Dead" = "SALARC_P7")
+
 
 plot_boxplot <- function(data, x_var, y_var, x_limits = NULL, title = "Phenology stuff", xlabel = "DOY (2016 - 2019)", ylabel = "Phenophase") {
   data %>%
     ggplot(aes(x = {{ x_var }}, y = {{ y_var }}, fill = interaction(Spp, obs))) +
     geom_boxplot() +
-    scale_fill_brewer(palette = "Set2") + # Use a qualitative palette that adapts to number of groups
+    scale_fill_brewer(palette = "Set3") + # Use a qualitative palette that adapts to number of groups
     scale_alpha_manual(values = c(1, 0.5)) +
     labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
     theme_classic() +
     theme(legend.position = "right") +
     { if (!is.null(x_limits)) xlim(x_limits) else NULL }
 }
+
+# Full date range plot
+overall_plot <- plot_boxplot(overall2, phase_DATE, plot)
+overall_plot + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Summer-only plot
+overall_plot_summeronly <- plot_boxplot(overall2, phase_DATE, plot, x_limits = c(120, 290), 
+                                        title = "Phenophase Chronology")
+overall_plot_summeronly
+
 
 
 ### end test
