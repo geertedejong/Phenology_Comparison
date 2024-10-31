@@ -226,7 +226,7 @@ salsen1_19 <- pheno %>% filter(Spp %in% "SALARC") %>%
 
 
 #### some cleaning ####
-s2_ndvisf<- subset(s2, NDVI_20m>0.1) #remove all NDVI values below o.1 to exclude negatives and snow
+s2_ndvisf<- subset(s2, NDVI_20m>0.0) #remove all NDVI values below o.1 to exclude negatives and snow
 
 #### Exploration plot of S2 data ####
 # NDVI
@@ -292,19 +292,28 @@ s2_ndvisf<- subset(s2, NDVI_20m>0.1) #remove all NDVI values below o.1 to exclud
 
 #### combination plot of cams, obs and NDVI ####
 (comb_plot <- ggplot()+
-   geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color=factor(year)), alpha=0.3, size=1)+
+   #geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color=factor(year)), alpha=0.3, size=1)+
    geom_smooth(data=s2_ndvisf,aes(x=doi, y=NDVI_20m, color=factor(year))) +
    hrbrthemes::scale_color_ipsum() +
-   geom_vline(xintercept=cam_sf16, linetype='dashed',color='orange')+
-   geom_vline(xintercept=cam_senescence16, linetype='dashed',color='orange')+
-   geom_vline(xintercept=cam_sf17, linetype='dashed',color='green')+
-   geom_vline(xintercept=cam_senescence17, linetype='dashed',color='green')+
-   geom_vline(xintercept=cam_sf18, linetype='dashed',color='purple')+
-   geom_vline(xintercept=cam_senescence18, linetype='dashed',color='purple')+
-   geom_vline(xintercept=cam_sf19, linetype='dashed',color='blue')+
+   geom_vline(xintercept=cam_sf16, linetype='dashed',color='orange',size=1)+
+   geom_vline(xintercept=cam_senescence16, linetype='dashed',color='orange',size=1)+
+   geom_vline(xintercept=cam_sf17, linetype='dashed',color='green',size=1)+
+   geom_vline(xintercept=cam_senescence17, linetype='dashed',color='green',size=1)+
+   geom_vline(xintercept=cam_sf18, linetype='dashed',color='purple',size=1)+
+   geom_vline(xintercept=cam_senescence18, linetype='dashed',color='purple',size=1)+
+   geom_vline(xintercept=cam_sf19, linetype='dashed',color='lightblue',size=1)+
    xlim(100,300)+
    ylim(0.1,1)+
    labs(y = "NDVI", x = "DOY (2016 - 2019)", color= "year") +
+   annotate(x = cam_sf16-20, y = 1, label = "snow-free cam", vjust = 0, geom = "label",size = 3)+
+   annotate(x = cam_sf16, y = 1, label = "2016", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_sf17, y = 0.92, label = "2017", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_sf18, y = 0.84, label = "2018", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_sf19, y = 0.76, label = "2019", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_senescence16-20, y = 1, label = "senescence cam", vjust = 0, geom = "label",size = 3)+
+   annotate(x = cam_senescence16, y = 1, label = "2016", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_senescence17, y = 0.92, label = "2017", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_senescence18, y = 0.84, label = "2018", vjust = 0, angle= 90, geom = "label",size = 3)+
    theme_classic() +
    theme(legend.position = "right")
 )
