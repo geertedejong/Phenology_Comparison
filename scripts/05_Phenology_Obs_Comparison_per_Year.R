@@ -1,7 +1,7 @@
-### 5. Visualize Phenology_Obs comparison per year ###
+### 5. Final figures ###
 ### Geerte Fälthammar de Jong, gugeerte@gmail.com ###
 ### Phenocam Project with Geerte de Jong, Joe Boyle, Maude Grenier & Elise Gallois ###
-### Date: September 2024 ###
+### Date: November 2024 ###
 
 #### LOAD PACKAGES  #####
 
@@ -36,115 +36,6 @@ pheno_clean <- pheno_clean %>%
   mutate(pheno_clean, phase_ID = fct_recode(phase_ID, "P1" = "S3")) 
 
 
-#### VISUALISE PHENOPHASES BY OBSERVATION TYPE ####
-#
-(pheno_spp_facet <- pheno_clean %>%
-   filter(Spp %in% c("DRYINT","SALARC","ERIVAG")) %>%
-   filter(Year %in% 
-            c("2019", "2018", "2017", "2016")) %>%
-   filter(!(phase_ID %in% c("S1", "S2", "S3", "S4", "S5", "S6",
-                            'P1_before','P2_before','P3_before','P4_before',
-                            'P5_before','P6_before','P7_before'))) %>%
-   ggplot() +
-   aes(x = phase_ID, y = phase_DATE, fill = obs) +
-   geom_boxplot() +
-   scale_fill_viridis_d(option = "viridis") +
-   labs(x = "Phenophase", y = "DOY (2016-2019)", fill = "Observation type") +
-   theme_bw() +
-   facet_wrap(vars(Spp, Year),nrow = 4,
-              ncol = 3,))
-
-
-
-#### VISUALISE PHENOPHASES BY SITE ####
-
-(dryas_site_facet <- pheno_clean %>%
-   filter(Plot.ID %in% c("1","2","5")) %>%
-   filter(Year %in% 
-            c("2019", "2018", "2017", "2016")) %>%
-   filter(Spp %in% "DRYINT") %>%
-   filter(!(phase_ID %in% c("S1", "S2", "S3", "S4", "S5", "S6", "P1","P7",
-                            'P1_before','P2_before','P3_before','P4_before',
-                            'P5_before','P6_before','P7_before'))) %>%
-   ggplot() +
-   aes(x = phase_ID, y = phase_DATE, fill = obs) +
-   geom_boxplot() +
-   scale_fill_viridis_d(option = "viridis") +
-   theme_bw() +
-   labs(x = "Phenophase",title = "Dryas Phenophases by Site", y = "DOY (2016-2019)", fill = "Observation type") +
-   facet_wrap(vars(Plot.ID, Year)))
-
-(sal_site_facet <- pheno_clean %>%
-    filter(Plot.ID %in% c("1","2","3","4","5","6")) %>%
-    filter(Spp %in% "SALARC") %>%
-    filter(Year %in% 
-             c("2019", "2018", "2017", "2016")) %>%
-    filter(!(phase_ID %in% c("S1", "S2", "S3", "S4", "S5", "S6", "P1","P7",
-                             'P1_before','P2_before','P3_before','P4_before',
-                             'P5_before','P6_before','P7_before'))) %>%
-    ggplot() +
-    aes(x = phase_ID, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    scale_fill_viridis_d(option = "viridis") +
-    theme_bw() +
-    labs(x = "Phenophase", title = "Salix Phenophases by Site",y = "DOY (2016-2019)", fill = "Observation type") +
-    facet_wrap(vars(Plot.ID, Year)))
-
-
-(eri_site_facet <- pheno_clean %>%
-    filter(Plot.ID %in% c("1","3","6")) %>%
-    filter(Spp %in% "ERIVAG") %>%
-    filter(Year %in% 
-             c("2019", "2018", "2017", "2016")) %>%
-    filter(!(phase_ID %in% c("S1", "S2", "S3", "S4", "S5", "S6", "P1","P7",
-                             'P1_before','P2_before','P3_before','P4_before',
-                             'P5_before','P6_before','P7_before'))) %>%
-    ggplot() +
-    aes(x = phase_ID, y = phase_DATE, fill = obs) +
-    geom_boxplot() +
-    scale_fill_viridis_d(option = "viridis") +
-    theme_bw() +
-    labs(x = "Phenophase",title = "Eriophorum Phenophases by Site", y = "DOY (2016-2019)", fill = "Observation type") +
-    facet_wrap(vars(Plot.ID, Year)))
-
-
-#### ALL DRYAS OBS ####
-(dryas_timeline <- pheno_clean %>%
-   filter(Spp %in% "DRYINT") %>%
-   filter(phase_ID %in% c("P1", "P2", "P3", "P4", "P5", "P6", "P7")) %>%
-   ggplot() +
-   aes(x = Year, y = phase_DATE, colour = phase_ID) +
-   geom_point(size = 1L) +
-   stat_smooth(method = 'lm') +
-   scale_color_brewer(palette = "Set2") +
-   labs(y = "DOY", title = "Dryas Phenophase Shifts (2016 - 2019)", col = "Phenophase") +
-   theme_bw())
-
-
-#### ALL SALIX OBS ####
-(salix_timeline <- pheno_clean %>%
-   filter(Spp %in% "SALARC") %>%
-   filter(phase_ID %in% c("P1", "P2", "P3", "P4", "P5", "P6", "P7")) %>%
-   ggplot() +
-   aes(x = Year, y = phase_DATE, colour = phase_ID) +
-   geom_point(size = 1L) +
-   stat_smooth(method = 'lm') +
-   scale_color_brewer(palette = "Set2") +
-   labs(y = "DOY", title = "Salix Phenophase Shifts (2001 - 2019)", col = "Phenophase") +
-   theme_bw())
-
-#### ALL ERIOPHORUM OBS ####
-(eri_timeline <- pheno_clean %>%
-   filter(Spp %in% "ERIVAG") %>%
-   filter(phase_ID %in% c("P1", "P2", "P3")) %>%
-   ggplot() +
-   aes(x = Year, y = phase_DATE, colour = phase_ID) +
-   geom_point(size = 1L) +
-   stat_smooth(method = 'lm') +
-   scale_color_brewer(palette = "Set2") +
-   labs(y = "DOY", title = "Eriophorum Phenophase Shifts (2001 - 2019)", col = "Phenophase") +
-   theme_bw())
-
 # filter the dataset to elminate duplicates
 
 # Filtering the dataset
@@ -167,6 +58,8 @@ phases <- list(
   list(phase_id = "P5", species = "SALARC", title = "S. arctica First Leaf Turns Yellow"),
   list(phase_id = "P6", species = "SALARC", title = "S. arctica Last Leaf Turns Yellow")
 )
+
+#### Figure 1 comparative boxplots ####
 
 # Function to generate boxplot and run model
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
@@ -239,7 +132,7 @@ anova_pheno
 ggsave(anova_pheno, filename = "figures/anova_phenocam_box_2024.png", height = 10, width = 12)
 
 
-#### Overall plot ####
+#### Figure 3 Boxplots chronologically ####
 overall <- pheno_clean %>%
   filter(Year >= 2016L & Year <= 2019L) %>%
   filter(phase_ID %in% c("P1", "P2", "P3", "P4", "P5", "P6", "P7")) %>%
@@ -256,33 +149,6 @@ overall2$plot <- factor(overall2$plot,
                         levels = c("SNOW_P1", "ERIVAG_P1", "ERIVAG_P2", "ERIVAG_P3", "DRYINT_P1", "DRYINT_P2", 
                                    "DRYINT_P3", "DRYINT_P4", "DRYINT_P5", "DRYINT_P6", "SALARC_P1", "SALARC_P2", 
                                    "SALARC_P3", "SALARC_P4", "SALARC_P5", "SALARC_P6", "SALARC_P7"))
-
-# General plot function
-plot_boxplot <- function(data, x_var, y_var, x_limits = NULL, title = "Phenology stuff", xlabel = "DOY (2016 - 2019)", ylabel = "Phenophase") {
-  data %>%
-    ggplot(aes(x = {{ x_var }}, y = {{ y_var }}, fill = Spp, alpha = obs)) +
-    geom_boxplot() +
-    hrbrthemes::scale_fill_ipsum() +
-    scale_alpha_manual(values = c(1, 0.5)) +
-    labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "none") +
-    { if (!is.null(x_limits)) xlim(x_limits) else NULL }
-}
-
-# Full date range plot
-overall_plot <- plot_boxplot(overall2, phase_DATE, plot)
-overall_plot + theme(axis.text.x = element_text(angle = 90, hjust = 1))
-
-# Summer-only plot
-overall_plot_summeronly <- plot_boxplot(overall2, phase_DATE, plot, x_limits = c(120, 290), 
-                                        title = "Phenophase Chronology (Transect [light] vs Phenocam [dark])")
-
-# Save summer-only plot
-ggsave(overall_plot_summeronly, filename = "figures/QHI_spp_chronto_alt.png", height = 10, width = 12)
-
-
-### test
 
 # Rename levels using fct_recode
 overall2$plot <- fct_recode(overall2$plot,
@@ -309,8 +175,10 @@ plot_boxplot <- function(data, x_var, y_var, x_limits = NULL, title = "Phenology
   data %>%
     ggplot(aes(x = {{ x_var }}, y = {{ y_var }}, fill = interaction(Spp, obs))) +
     geom_boxplot() +
-    scale_fill_brewer(palette = "Set3") + # Use a qualitative palette that adapts to number of groups
-    scale_alpha_manual(values = c(1, 0.5)) +
+    #scale_fill_brewer(palette = "Set2") + # Use a qualitative palette that adapts to number of groups
+    scale_fill_manual(values = c("lightgreen","darkgreen","yellow","orange","pink","purple","blue"),
+                      breaks = c("SALARC.transect","SALARC.phenocam","DRYINT.transect","DRYINT.phenocam"  ,"ERIVAG.transect","ERIVAG.phenocam","SNOW.phenocam"),
+                      labels = c("Sal.Arc. transect","Sal.Arc. phenocam","Dry.Int. transect","Dry.Int. phenocam","Eri.Vag. transect","Eri.Vag phenocam","Snow phenocam"))+
     labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
     theme_classic() +
     theme(legend.position = "right") +
@@ -326,26 +194,207 @@ overall_plot_summeronly <- plot_boxplot(overall2, phase_DATE, plot, x_limits = c
                                         title = "Phenophase Chronology")
 overall_plot_summeronly
 
+#### Figure 2 Satellites and snow-free obs ####
+
+s2    <- read.csv(file = "data/S2QHIphenocam.csv")
+ndvi_m <- read.csv(file = "data/NDVI_modis.csv")
+ndsi_m <- read.csv(file = "data/NDSI_modis.csv")
+
+# filter for only P1
+snowfree <- pheno %>% filter(phase_ID == "P1") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
+
+# filter for only P2
+eriobud <- pheno %>% filter(Spp %in% "ERIVAG") %>% 
+  filter(phase_ID == "P2") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
+
+# filter for only P2
+drybud <- pheno %>% filter(Spp %in% "DRYINT") %>% 
+  filter(phase_ID == "P2") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
+
+# filter for only P3
+dryopen <- pheno %>% filter(Spp %in% "DRYINT") %>% 
+  filter(phase_ID == "P3") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
+
+# filter for only P4
+dryshed <- pheno %>% filter(Spp %in% "DRYINT") %>% 
+  filter(phase_ID == "P4") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
+
+# filter for only P5
+drytwist <- pheno %>% filter(Spp %in% "DRYINT") %>% 
+  filter(phase_ID == "P5") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
+
+# filter for only P2
+salbud <- pheno %>% filter(Spp %in% "SALARC") %>% 
+  filter(phase_ID == "P2") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
+
+# filter for only P5
+salsen1 <- pheno %>% filter(Spp %in% "SALARC") %>% 
+  filter(phase_ID == "P5") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
+
+# filter for only P5
+salsen2 <- pheno %>% filter(Spp %in% "SALARC") %>% 
+  filter(phase_ID == "P6") %>%
+  filter(Year >= 2016L & Year <= 2019L) 
 
 
-### end test
+#### some cleaning ####
+s2_ndvisf<- subset(s2, NDVI_20m>0.1) #remove all NDVI values below o.2 to exclude negatives and snow
+s2_ndsi <- subset(s2, NDSI_20m>0.4)
 
+m_ndvisf<- subset(ndvi_m, NDVI>0.1) #remove all NDVI values below o.2 to exclude negatives and snow
+m_ndsi <- subset(ndsi_m, NDSI>4000)
+m_ndsi$NDSI <- (m_ndsi$NDSI)*0.0001
 
+#### Exploration plot of S2 data ####
+# NDVI
+# average geom smooth and colors for camera locations, separate years
+(s2_plot <- s2_ndvisf %>%
+   ggplot() +
+   aes(x = doi, y = NDVI_20m) +
+   geom_smooth() +
+   geom_point(aes(color=name))+
+   hrbrthemes::scale_fill_ipsum() +
+   labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+   
+   facet_grid(year~.) +
+   theme_classic() +
+   theme(legend.position = "none"))
 
-#### all pheno phases chrono ###
-
-(fulltimeline_chrono <- pheno %>%
-    filter(!(Spp %in% c("SNOW",  "LUPARC", "PEDIC"))) %>%
-    filter(!(phase_ID %in% c("S1", "S4","S5","S6","S2", "P1_before", "P2_before", "P3_before", "P4_before", 
-                             "P5_before", "P6_before", "P7_before"))) %>%
+# average geom smooth and colors for camera locations, average for all years
+(s2_plot <- s2_ndvisf %>%
     ggplot() +
-    aes(x = Year, y = phase_DATE, colour = phase_ID) +
-    geom_point(size = 1L) +
-    stat_smooth(method = 'lm') +
-    theme_minimal() +
-    labs(x = "Year", y = "DOY", fill = "Phenophase ID") +
-    
-    facet_wrap(vars(Spp)))
+    aes(x = doi, y = NDVI_20m) +
+    geom_smooth() +
+    geom_point(aes(color=year))+
+    hrbrthemes::scale_fill_ipsum() +
+    labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+    xlim(120,290) +
+    scale_y_continuous(name = NULL, sec.axis = sec_axis(~., name = "NDVI")) +
+    theme_classic() +
+    theme(legend.position = "none"))
 
-ggsave(fulltimeline_chrono, filename = "figures/QHI_spp_chronto.png", height = 10, width = 12)
+# NDSI
+# average geom smooth and colors for camera locations, separate years
+(s2_plot <- s2_ndsi %>%
+    ggplot() +
+    aes(x = doi, y = NDSI_20m) +
+    geom_smooth() +
+    geom_point(aes(color=name))+
+    hrbrthemes::scale_fill_ipsum() +
+    labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year") +
+    facet_grid(year~.) +
+    theme_classic() +
+    theme(legend.position = "none"))
+
+# average geom smooth and colors for camera locations, average for all years
+(s2_plot <- s2_ndsi %>%
+    ggplot() +
+    aes(x = doi, y = NDSI_20m) +
+    geom_smooth() +
+    geom_point(aes(color=year))+
+    hrbrthemes::scale_fill_ipsum() +
+    labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year") +
+    theme_classic() +
+    theme(legend.position = "none"))
+
+#### Exploration plot of MODIS data ####
+# NDVI
+# average geom smooth and colors for camera locations, separate years
+(m_plot <- m_ndvisf %>%
+   ggplot() +
+   aes(x = doy, y = NDVI) +
+   geom_smooth() +
+   geom_point(aes(color=name))+
+   hrbrthemes::scale_fill_ipsum() +
+   labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+   facet_grid(year~.) +
+   theme_classic() +
+   theme(legend.position = "none"))
+
+# average geom smooth and colors for camera locations, average for all years
+(m_plot <- m_ndvisf %>%
+    ggplot() +
+    aes(x = doy, y = NDVI) +
+    geom_smooth() +
+    geom_point(aes(color=year))+
+    hrbrthemes::scale_fill_ipsum() +
+    labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+    theme_classic() +
+    theme(legend.position = "none"))
+
+# NDSI
+# average geom smooth and colors for camera locations, separate years
+(m_plot <- m_ndsi %>%
+    ggplot() +
+    aes(x = doy, y = NDSI) +
+    geom_smooth() +
+    geom_point(aes(color=name))+
+    hrbrthemes::scale_fill_ipsum() +
+    labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year") +
+    facet_grid(year~.) +
+    theme_classic() +
+    theme(legend.position = "none"))
+
+# average geom smooth and colors for camera locations, average for all years
+(m_plot <- m_ndsi %>%
+    ggplot() +
+    aes(x = doy, y = NDSI) +
+    geom_smooth() +
+    geom_point(aes(color=year))+
+    hrbrthemes::scale_fill_ipsum() +
+    labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year") +
+    theme_classic() +
+    theme(legend.position = "none"))
+
+#### combination plot S2 and MODIS ####
+comb_db <- rbind(m_ndsi, m_ndvisf, s2_ndvisf, s2_ndsi)
+
+# NB run 02_Phenology_Obs_Comparison script first to load data into environment
+(cam_sf <- min(snowfree$phase_DATE, na.rm=TRUE))
+(cam_greenup <- min(dryopen$phase_DATE, na.rm=TRUE))
+(cam_senescence <- max(salsen2$phase_DATE, na.rm=TRUE))
+
+#### combination plot of cams, obs and NDVI ####
+(comb_plot <- ggplot()+
+   geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color='coral1'), alpha=0.3, size=1 ,inherit.aes = FALSE)+
+   geom_point(data=m_ndvisf, aes(x=doy, y=NDVI, color='deepskyblue'), alpha=0.3, size=1,inherit.aes = FALSE)+
+   geom_smooth(data=s2_ndvisf,aes(x=doi, y=NDVI_20m, color='coral1'),inherit.aes = FALSE) +
+   geom_smooth(data=m_ndvisf, aes(x=doy, y=NDVI, color='deepskyblue'),inherit.aes = FALSE) +
+   hrbrthemes::scale_fill_ipsum() +
+   geom_vline(xintercept=cam_sf, linetype='dashed')+
+   geom_vline(xintercept=cam_greenup, linetype='dashed')+
+   geom_vline(xintercept=cam_senescence, linetype='dashed')+
+   xlim(100,300)+
+   ylim(0.2,1)+
+   labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+   theme_classic() +
+   theme(legend.position = "none")
+)
+
+ggsave(comb_plot, filename = "figures/cam_obs_ndvi_greencurv.png", height = 10, width = 12)
+
+#...and NDSI
+(comb_plot <- ggplot()+
+    geom_point(data=s2_ndsi, aes(x=doi, y=NDSI_20m, color='coral1'), alpha=0.3, size=1 ,inherit.aes = FALSE)+
+    geom_point(data=m_ndsi, aes(x=doy, y=NDSI, color='deepskyblue'), alpha=0.3, size=1,inherit.aes = FALSE)+
+    geom_smooth(data=s2_ndsi,aes(x=doi, y=NDSI_20m, color='coral1'),inherit.aes = FALSE) +
+    geom_smooth(data=m_ndsi, aes(x=doy, y=NDSI, color='deepskyblue'),inherit.aes = FALSE) +
+    hrbrthemes::scale_fill_ipsum() +
+    geom_vline(xintercept=cam_sf, linetype='dashed')+
+    geom_vline(xintercept=cam_senescence, linetype='dashed')+
+    ylim(0.4,1)+
+    labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year",inherit.aes = FALSE) +
+    theme_classic() +
+    theme(legend.position = "none")
+)
+
+ggsave(comb_plot, filename = "figures/cam_obs_ndsi_greencurv.png", height = 10, width = 12)
 
