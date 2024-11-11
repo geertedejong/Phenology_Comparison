@@ -23,8 +23,12 @@ library(RColorBrewer)
 #### LOAD FULL PHENOLOGY DATA DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
 pheno_clean <- read.csv(file = "data/phenology_transect_cam_CLEAN.csv")
+s2    <- read.csv(file = "data/S2QHIphenocam.csv")
 
 str(pheno_clean)
+
+s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.2 to exclude negatives and snow
+s2_ndsi <- subset(s2, NDSI_20m>0.4)
 
 #### SNOW FREE DAY - S3 to P1 ####
 # rename column s3 to p1 to match transect data
@@ -226,7 +230,7 @@ salsen1_19 <- pheno %>% filter(Spp %in% "SALARC") %>%
 
 
 #### some cleaning ####
-s2_ndvisf<- subset(s2, NDVI_20m>0.0) #remove all NDVI values below o.1 to exclude negatives and snow
+s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclude negatives and snow
 
 #### Exploration plot of S2 data ####
 # NDVI
@@ -241,7 +245,7 @@ s2_ndvisf<- subset(s2, NDVI_20m>0.0) #remove all NDVI values below o.1 to exclud
    
    facet_grid(year~.) +
    theme_classic() +
-   theme(legend.position = "none"))
+   theme(legend.position ="right"))
 
 # average geom smooth and colors for camera locations, average for all years
 (s2_plot <- s2_ndvisf %>%
@@ -320,20 +324,57 @@ s2_ndvisf<- subset(s2, NDVI_20m>0.0) #remove all NDVI values below o.1 to exclud
 
 ggsave(comb_plot, filename = "figures/cam_obs_ndvi_greencurv.png", height = 10, width = 12)
 
-#...and NDSI
-(comb_plot <- ggplot()+
-    geom_point(data=s2_ndsi, aes(x=doi, y=NDSI_20m, color='coral1'), alpha=0.3, size=1 ,inherit.aes = FALSE)+
-    geom_point(data=m_ndsi, aes(x=doy, y=NDSI, color='deepskyblue'), alpha=0.3, size=1,inherit.aes = FALSE)+
-    geom_smooth(data=s2_ndsi,aes(x=doi, y=NDSI_20m, color='coral1'),inherit.aes = FALSE) +
-    geom_smooth(data=m_ndsi, aes(x=doy, y=NDSI, color='deepskyblue'),inherit.aes = FALSE) +
-    hrbrthemes::scale_fill_ipsum() +
-    geom_vline(xintercept=cam_sf, linetype='dashed')+
-    geom_vline(xintercept=cam_senescence, linetype='dashed')+
-    ylim(0.4,1)+
-    labs(y = "NDSI", x = "DOY (2016 - 2019)", fill = "year",inherit.aes = FALSE) +
+#### Figure 3 big plot combining phenocams, transect and sat data ####
+
+library(ggplot2)
+library(dplyr)
+library(hrbrthemes)
+
+library(patchwork)
+
+# Function to create the phenophase boxplot
+plot_phenophase_boxplot <- function(data, x_var, y_var, x_limits = NULL, 
+                                    title = "Phenology stuff", xlabel = "DOY (2016 - 2019)", ylabel = "Phenophase") {
+  p <- data %>%
+    ggplot() +
+    geom_boxplot(aes(x = {{ x_var }}, y = {{ y_var }}, fill = interaction(Spp, obs))) +
+    scale_fill_manual(values = c("lightgreen","darkgreen","yellow","orange","pink","purple","blue"),
+                      breaks = c("SALARC.transect","SALARC.phenocam","DRYINT.transect","DRYINT.phenocam",
+                                 "ERIVAG.transect","ERIVAG.phenocam","SNOW.phenocam"),
+                      labels = c("Sal.Arc. transect","Sal.Arc. phenocam","Dry.Int. transect",
+                                 "Dry.Int. phenocam","Eri.Vag. transect","Eri.Vag phenocam",
+                                 "Snow phenocam")) +
+    labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
     theme_classic() +
-    theme(legend.position = "none")
-)
+    theme(legend.position = "right") +
+    coord_cartesian(xlim = x_limits)  # Ensure x-axis matches NDVI plot
+  
+  return(p)
+}
 
-ggsave(comb_plot, filename = "figures/cam_obs_ndsi_greencurv.png", height = 10, width = 12)
+# Function to create the NDVI line plot
+plot_ndvi_line <- function(s2_ndvisf, x_limits = NULL, xlabel = "DOY", ylabel = "NDVI") {
+  p <- s2_ndvisf %>%
+    ggplot() +
+    geom_smooth(aes(x = doi, y = NDVI_20m, color = factor(year))) +
+    scale_color_ipsum() +
+    labs(x = xlabel, y = ylabel, color = "Year") +
+    theme_classic() +
+    theme(legend.position = "right") +
+    coord_cartesian(xlim = x_limits)  # Ensure x-axis matches phenophase plot
+  
+  return(p)
+}
 
+# Define the x-axis limits (e.g., full year or summer only)
+x_limits <- c(130, 280)  # For summer-only
+
+# Create both plots with matching x-axis limits
+phenophase_plot <- plot_phenophase_boxplot(overall2, phase_DATE, plot, x_limits = x_limits, title = "Phenophase Chronology")
+ndvi_plot <- plot_ndvi_line(s2_ndvisf, x_limits = x_limits)
+
+# Combine plots vertically using patchwork
+combined_plot <- phenophase_plot / ndvi_plot
+
+# Display the combined plot
+combined_plot
