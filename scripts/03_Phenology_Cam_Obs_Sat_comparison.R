@@ -75,7 +75,7 @@ salsen2 <- pheno %>% filter(Spp %in% "SALARC") %>%
 
 #### some cleaning ####
 s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.2 to exclude negatives and snow
-s2_ndsi <- subset(s2, NDSI_20m>0.4)
+s2_ndsi <- subset(s2, NDSI_20m>0)
 
 m_ndvisf<- subset(ndvi_m, NDVI>0.2) #remove all NDVI values below o.2 to exclude negatives and snow
 m_ndsi <- subset(ndsi_m, NDSI>4000)
