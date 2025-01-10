@@ -80,6 +80,17 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   
   # Check if the filtered data is empty or obs has less than 2 levels
   if (nrow(filtered_data) > 0 && length(unique(filtered_data$obs)) > 1) {
+    # Calculate DOY differences (pairwise for each obs)
+    doy_differences <- filtered_data %>%
+      group_by(obs) %>%
+      summarise(mean_DOY = mean(phase_DATE, na.rm = TRUE),
+                sd_DOY = sd(phase_DATE, na.rm = TRUE),
+                .groups = "drop")
+    
+    # Summary statistics for differences between obs
+    overall_mean_diff <- abs(diff(doy_differences$mean_DOY))
+    overall_sd_diff <- sqrt(sum(doy_differences$sd_DOY^2) / length(doy_differences$sd_DOY))
+    
     # Use lmer for mixed model
     full_model <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action = na.omit)
     null_model <- lmer(phase_DATE ~ 1 + (1|Year), data = filtered_data, na.action = na.omit)
@@ -106,24 +117,30 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
                label = paste("\n p =", format.pval(p_value)), 
                hjust = 1.1, vjust = 0.3, size = 4, color = "black", fontface = "italic")
     
-    return(list(plot = plot, p_value = p_value))
+    return(list(plot = plot, 
+                p_value = p_value, 
+                mean_diff = overall_mean_diff, 
+                sd_diff = overall_sd_diff))
   } else {
     # Return an empty plot if there are insufficient levels or no data
     print("Insufficient data or only one level of obs, returning empty plot.")
-    return(list(plot = ggplot() + geom_blank(), p_value = NA))
+    return(list(plot = ggplot() + geom_blank(), 
+                p_value = NA, 
+                mean_diff = NA, 
+                sd_diff = NA))
   }
 }
-
 
 # Run the function on phases
 results <- map(phases, function(phase) {
   anova_boxplot(pheno_clean, phase$phase_id, phase$species, phase$title)
 })
 
-
-# Extract plots and summaries
+# Extract plots, p-values, and summaries
 plots <- map(results, "plot")
-p_value <- map(results, "p_value")
+p_values <- map(results, "p_value")
+mean_diffs <- map(results, "mean_diff")
+sd_diffs <- map(results, "sd_diff")
 
 # Arrange the plots into a grid
 anova_pheno <- ggarrange(plotlist = plots, ncol = 3, nrow = 3)
@@ -438,3 +455,4 @@ combined_plot <- phenophase_plot / ndvi_plot
 
 # Display the combined plot
 combined_plot
+
