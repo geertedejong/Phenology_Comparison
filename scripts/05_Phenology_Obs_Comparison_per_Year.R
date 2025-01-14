@@ -109,8 +109,8 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
       geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
       hrbrthemes::scale_fill_ipsum() +
       hrbrthemes::scale_colour_ipsum() +
-      labs(x = "Observation type", y = "DOY (2016 - 2019)", 
-           title = title, fill = "Observation type") +
+      labs(x = "Observation method", y = "DOY (2016 - 2019)", 
+           title = title, fill = "Observation method") +
       theme_classic() +
       theme(legend.position = "none") +
       annotate("text", x = Inf, y = annotation_y, 
@@ -174,22 +174,22 @@ overall2$plot <- factor(overall2$plot,
 # Rename levels using fct_recode
 overall2$plot <- fct_recode(overall2$plot,
                             "Snow Free Plot" = "SNOW_P1",
-                            "E.Vag.Snow Free" = "ERIVAG_P1",
-                            "E.Vag. First Flower Bud" = "ERIVAG_P2",
-                            "E.Vag. First Pollen visible" = "ERIVAG_P3",
-                            "Dry.Int. Snow Free" = "DRYINT_P1",
-                            "Dry.Int. First White on Bud" = "DRYINT_P2",
-                            "Dry.Int. First Open Flower" = "DRYINT_P3",
-                            "Dry.Int. Last Petal Shed" = "DRYINT_P4",
-                            "Dry.Int. First Twisting of Filaments" = "DRYINT_P5",
-                            "Dry.Int. All leaves dead" = "DRYINT_P6",
-                            "Sal.Arc. Snow Free" = "SALARC_P1",
-                            "Sal.Arc. First Leaf Bud Burst " = "SALARC_P2",
-                            "Sal.Arc. First Pollen" = "SALARC_P3",
-                            "Sal.Arc. Onset Seed Dispersal" = "SALARC_P4",
-                            "Sal.Arc. First Yellow Leaf" = "SALARC_P5",
-                            "Sal.Arc. Last Green Leaf" = "SALARC_P6",
-                            "Sal.Arc. All Leaves Dead" = "SALARC_P7")
+                            "E.vaginatum Snow Free" = "ERIVAG_P1",
+                            "E.vaginatum First Flower Bud" = "ERIVAG_P2",
+                            "E.vaginatum First Pollen visible" = "ERIVAG_P3",
+                            "D.integrifolia Snow Free" = "DRYINT_P1",
+                            "D.integrifolia First White on Bud" = "DRYINT_P2",
+                            "D.integrifolia First Open Flower" = "DRYINT_P3",
+                            "D.integrifolia Last Petal Shed" = "DRYINT_P4",
+                            "D.integrifolia First Twisting of Filaments" = "DRYINT_P5",
+                            "D.integrifolia All leaves dead" = "DRYINT_P6",
+                            "S.arctica Snow Free" = "SALARC_P1",
+                            "S.arctica First Leaf Bud Burst " = "SALARC_P2",
+                            "S.arctica First Pollen" = "SALARC_P3",
+                            "S.arctica Onset Seed Dispersal" = "SALARC_P4",
+                            "S.arctica First Yellow Leaf" = "SALARC_P5",
+                            "S.arctica Last Green Leaf" = "SALARC_P6",
+                            "S.arctica All Leaves Dead" = "SALARC_P7")
 
 
 plot_boxplot <- function(data, x_var, y_var, x_limits = NULL, title = "Phenology stuff", xlabel = "DOY (2016 - 2019)", ylabel = "Phenophase") {
@@ -199,7 +199,7 @@ plot_boxplot <- function(data, x_var, y_var, x_limits = NULL, title = "Phenology
     #scale_fill_brewer(palette = "Set2") + # Use a qualitative palette that adapts to number of groups
     scale_fill_manual(values = c("lightgreen","darkgreen","yellow","orange","pink","purple","blue"),
                       breaks = c("SALARC.transect","SALARC.phenocam","DRYINT.transect","DRYINT.phenocam"  ,"ERIVAG.transect","ERIVAG.phenocam","SNOW.phenocam"),
-                      labels = c("Sal.Arc. transect","Sal.Arc. phenocam","Dry.Int. transect","Dry.Int. phenocam","Eri.Vag. transect","Eri.Vag phenocam","Snow phenocam"))+
+                      labels = c("S.arctica transect","S.arctica phenocam","D.integrifolia transect","D.integrifolia  phenocam","E.vaginatum transect","E.vaginatum phenocam","Snow phenocam"))+
     labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
     theme_classic() +
     theme(legend.position = "right") +
@@ -310,6 +310,8 @@ s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclud
 (cam_senescence17 <- max(salsen2_17$phase_DATE, na.rm=TRUE))
 (cam_senescence18 <- max(salsen2_18$phase_DATE, na.rm=TRUE))
 (cam_senescence19 <- max(salsen1_19$phase_DATE, na.rm=TRUE))
+
+# for first doy of ndvi>0.2 per year I manually checked the table
 
 #### combination plot of cams, obs and NDVI for S2####
 (comb_plot <- ggplot()+
@@ -456,3 +458,33 @@ combined_plot <- phenophase_plot / ndvi_plot
 # Display the combined plot
 combined_plot
 
+
+#### test to combine plots in one with a secondary axis
+
+# Create the primary NDVI line plot
+ndvi_plot <- ggplot(s2_ndvisf, aes(x = doi)) +
+  geom_smooth(aes(y = NDVI_20m, color = factor(year))) +
+  scale_y_continuous(name = "NDVI",
+                     sec.axis = sec_axis(~ ., name = "Phenophase")) + # Secondary axis
+  scale_color_manual(values = c("blue", "green", "orange", "purple")) +
+  theme_classic() +
+  labs(color = "Year")
+
+# Create the secondary phenophase boxplot and flip it horizontally
+phenophase_plot <- ggplot(overall2, aes(x = phase_DATE, y = plot)) +
+  geom_boxplot(aes(fill = interaction(Spp, obs))) +
+  scale_fill_manual(values = c("lightgreen", "darkgreen", "yellow", "orange", "pink", "purple", "blue"),
+                    breaks = c("SALARC.transect", "SALARC.phenocam", "DRYINT.transect", "DRYINT.phenocam",
+                               "ERIVAG.transect", "ERIVAG.phenocam", "SNOW.phenocam"),
+                    labels = c("Sal.Arc. transect", "Sal.Arc. phenocam", "Dry.Int. transect",
+                               "Dry.Int. phenocam", "Eri.Vag. transect", "Eri.Vag phenocam",
+                               "Snow phenocam")) +
+  theme_classic() +
+  labs(fill = "Observation type")
+
+# Combine the plots using ggplot's layering
+combined_plot <- ndvi_plot + phenophase_plot
+  
+
+# Display the combined plot
+print(combined_plot)
