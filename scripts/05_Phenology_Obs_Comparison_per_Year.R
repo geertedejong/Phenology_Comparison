@@ -519,3 +519,22 @@ combined_plot <-phenophase_plot + ndvi_plot
 print(combined_plot)
 
 #### calculate recurrence times for sentinel-2 and modis
+# sentinel
+#transform doi and year columns into dates
+s2_ndvisf$date <- as.Date(s2_ndvisf$doi-1, origin=paste0(s2_ndvisf$year,"-01-01"))
+#calculate difference in days between consecutive days
+s2_ndvisf$recurrence <- c(NA,diff(s2_ndvisf$date))
+#calculate min, max and average, ignoring 0's as those are from different tiles taken the same day
+s2_recurrence <- na.omit(s2_ndvisf$recurrence)
+s2_recurrence <- s2_recurrence[s2_recurrence!=0]
+
+min_rec <- min(s2_recurrence)
+max_rec <- max(s2_recurrence)
+avg_rec <- mean(s2_recurrence)
+sd_rec <- sd(s2_recurrence)
+
+s2_rec_summer <- s2_recurrence[s2_recurrence <200]
+min_sum <- min(s2_rec_summer)
+max_sum <- max(s2_rec_summer)
+avg_sum <- mean(s2_rec_summer)
+sd_sum <- sd(s2_rec_summer)
