@@ -78,8 +78,6 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   print(paste("Number of rows:", nrow(filtered_data)))
   print(paste("Unique obs:", unique(filtered_data$obs)))
   
-  # Check if the filtered data is empty or obs has less than 2 levels
-  if (nrow(filtered_data) > 0 && length(unique(filtered_data$obs)) > 1) {
     # Calculate DOY differences (pairwise for each obs)
     doy_differences <- filtered_data %>%
       group_by(obs) %>%
@@ -102,17 +100,51 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
     
     annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE)
     
+    # modeled data means and plow, phigh
+    newdat <- expand.grid(obs=c("transect", "phenocam"), phase_DATE=0)
+    newdat$phase_DATE <- predict(full_model, newdat, re.form=NA)
+    
+    print(newdat)
+    
+    mm <- model.matrix(terms(full_model),newdat)
+    pvarl <- diag(mm %*% tcrossprod(vcov(full_model),mm))
+    
+    newdat <- data.frame(
+      newdat,
+      plo = newdat$phase_DATE-2*sqrt(pvarl),
+      phi = newdat$phase_DATE+2*sqrt(pvarl)
+    )
+    
+    print(newdat)
+    
     # ggplot function
     plot <- filtered_data %>%
       ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
-      geom_boxplot(alpha = 0.8, outlier.colour = NA) +
-      geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
+      # Boxplot for observed data
+      #geom_boxplot(alpha = 0.8, outlier.colour = NA, width = 0.5) +
+      
+      # Jittered raw points for observed data
+      geom_jitter(width = 0.2, size = 2, alpha = 0.2) +
+      
+      # plot modeled data
+      geom_pointrange(data = newdat, 
+                      aes(x = obs, y = phase_DATE, ymin = plo, ymax = phi), 
+                      fill = obs, 
+                      col = obs,
+                      size = 2, 
+                      fatten = 3, 
+                      inherit.aes = FALSE) +
+      # Theme and styling
       hrbrthemes::scale_fill_ipsum() +
       hrbrthemes::scale_colour_ipsum() +
-      labs(x = "Observation method", y = "DOY (2016 - 2019)", 
-           title = title, fill = "Observation method") +
+      labs(x = "Observation method", 
+           y = "DOY (2016 - 2019)", 
+           title = title, 
+           fill = "Observation method") +
       theme_classic() +
       theme(legend.position = "none") +
+      
+      # Add annotation for p-value
       annotate("text", x = Inf, y = annotation_y, 
                label = paste("\n p =", format.pval(p_value)), 
                hjust = 1.1, vjust = 0.3, size = 4, color = "black", fontface = "italic")
@@ -121,14 +153,6 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
                 p_value = p_value, 
                 mean_diff = overall_mean_diff, 
                 sd_diff = overall_sd_diff))
-  } else {
-    # Return an empty plot if there are insufficient levels or no data
-    print("Insufficient data or only one level of obs, returning empty plot.")
-    return(list(plot = ggplot() + geom_blank(), 
-                p_value = NA, 
-                mean_diff = NA, 
-                sd_diff = NA))
-  }
 }
 
 # Run the function on phases
