@@ -78,8 +78,6 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   print(paste("Number of rows:", nrow(filtered_data)))
   print(paste("Unique obs:", unique(filtered_data$obs)))
   
-  # Check if the filtered data is empty or obs has less than 2 levels
-  if (nrow(filtered_data) > 0 && length(unique(filtered_data$obs)) > 1) {
     # Calculate DOY differences (pairwise for each obs)
     doy_differences <- filtered_data %>%
       group_by(obs) %>%
@@ -102,17 +100,51 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
     
     annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE)
     
+    # modeled data means and plow, phigh
+    newdat <- expand.grid(obs=c("transect", "phenocam"), phase_DATE=0)
+    newdat$phase_DATE <- predict(full_model, newdat, re.form=NA)
+    
+    print(newdat)
+    
+    mm <- model.matrix(terms(full_model),newdat)
+    pvarl <- diag(mm %*% tcrossprod(vcov(full_model),mm))
+    
+    newdat <- data.frame(
+      newdat,
+      plo = newdat$phase_DATE-2*sqrt(pvarl),
+      phi = newdat$phase_DATE+2*sqrt(pvarl)
+    )
+    
+    print(newdat)
+    
     # ggplot function
     plot <- filtered_data %>%
       ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
-      geom_boxplot(alpha = 0.8, outlier.colour = NA) +
-      geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
+      # Boxplot for observed data
+      #geom_boxplot(alpha = 0.8, outlier.colour = NA, width = 0.5) +
+      
+      # Jittered raw points for observed data
+      geom_jitter(width = 0.2, size = 2, alpha = 0.2) +
+      
+      # plot modeled data
+      geom_pointrange(data = newdat, 
+                      aes(x = obs, y = phase_DATE, ymin = plo, ymax = phi), 
+                      fill = obs, 
+                      col = obs,
+                      size = 2, 
+                      fatten = 3, 
+                      inherit.aes = FALSE) +
+      # Theme and styling
       hrbrthemes::scale_fill_ipsum() +
       hrbrthemes::scale_colour_ipsum() +
-      labs(x = "Observation method", y = "DOY (2016 - 2019)", 
-           title = title, fill = "Observation method") +
+      labs(x = "Observation method", 
+           y = "DOY (2016 - 2019)", 
+           title = title, 
+           fill = "Observation method") +
       theme_classic() +
       theme(legend.position = "none") +
+      
+      # Add annotation for p-value
       annotate("text", x = Inf, y = annotation_y, 
                label = paste("\n p =", format.pval(p_value)), 
                hjust = 1.1, vjust = 0.3, size = 4, color = "black", fontface = "italic")
@@ -121,14 +153,6 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
                 p_value = p_value, 
                 mean_diff = overall_mean_diff, 
                 sd_diff = overall_sd_diff))
-  } else {
-    # Return an empty plot if there are insufficient levels or no data
-    print("Insufficient data or only one level of obs, returning empty plot.")
-    return(list(plot = ggplot() + geom_blank(), 
-                p_value = NA, 
-                mean_diff = NA, 
-                sd_diff = NA))
-  }
 }
 
 # Run the function on phases
@@ -408,28 +432,25 @@ ggsave(comb_plot, filename = "figures/cam_obs_ndvi_greencurv_modis.png", height 
 library(ggplot2)
 library(dplyr)
 library(hrbrthemes)
-
 library(patchwork)
 
-# Function to create the phenophase boxplot
-plot_phenophase_boxplot <- function(data, x_var, y_var, x_limits = NULL, 
-                                    title = "Phenology stuff", xlabel = "DOY (2016 - 2019)", ylabel = "Phenophase") {
-  p <- data %>%
-    ggplot() +
-    geom_boxplot(aes(x = {{ x_var }}, y = {{ y_var }}, fill = interaction(Spp, obs))) +
+phenophase_boxplot <- overall2 %>%
+    ggplot(aes(x = phase_DATE, y = plot)) +
+    geom_boxplot(aes(fill = interaction(Spp, obs))) +
+    #geom_smooth(data = s2_ndvisf,aes(x = doi, y = (NDVI_20m)*14, color = factor(year))) +
+    #scale_y_continuous(sec.axis = ~(.*14), name = "NDVI_20m")+
     scale_fill_manual(values = c("lightgreen","darkgreen","yellow","orange","pink","purple","blue"),
                       breaks = c("SALARC.transect","SALARC.phenocam","DRYINT.transect","DRYINT.phenocam",
                                  "ERIVAG.transect","ERIVAG.phenocam","SNOW.phenocam"),
                       labels = c("Sal.Arc. transect","Sal.Arc. phenocam","Dry.Int. transect",
                                  "Dry.Int. phenocam","Eri.Vag. transect","Eri.Vag phenocam",
                                  "Snow phenocam")) +
-    labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
-    theme_classic() +
-    theme(legend.position = "right") +
-    coord_cartesian(xlim = x_limits)  # Ensure x-axis matches NDVI plot
+    labs(x = "DOY",  fill = "Observation type") +
+    theme_classic()+
+    coord_cartesian(xlim = c(130, 280))+
+    theme(legend.position = "right")
   
-  return(p)
-}
+
 
 # Function to create the NDVI line plot
 plot_ndvi_line <- function(s2_ndvisf, x_limits = NULL, xlabel = "DOY", ylabel = "NDVI") {
@@ -449,17 +470,17 @@ plot_ndvi_line <- function(s2_ndvisf, x_limits = NULL, xlabel = "DOY", ylabel = 
 x_limits <- c(130, 280)  # For summer-only
 
 # Create both plots with matching x-axis limits
-phenophase_plot <- plot_phenophase_boxplot(overall2, phase_DATE, plot, x_limits = x_limits, title = "Phenophase Chronology")
+#phenophase_plot <- plot_phenophase_boxplot(overall2, phase_DATE, plot, x_limits = x_limits, title = "Phenophase Chronology")
 ndvi_plot <- plot_ndvi_line(s2_ndvisf, x_limits = x_limits)
 
 # Combine plots vertically using patchwork
-combined_plot <- phenophase_plot / ndvi_plot
+combined_plot <- phenophase_boxplot / ndvi_plot
 
 # Display the combined plot
 combined_plot
 
 
-#### test to combine plots in one with a secondary axis
+#### test to combine plots in one with a secondary axis ####
 
 # Create the primary NDVI line plot
 ndvi_plot <- ggplot(s2_ndvisf, aes(x = doi)) +
@@ -483,8 +504,61 @@ phenophase_plot <- ggplot(overall2, aes(x = phase_DATE, y = plot)) +
   labs(fill = "Observation type")
 
 # Combine the plots using ggplot's layering
-combined_plot <- ndvi_plot + phenophase_plot
+combined_plot <-phenophase_plot + ndvi_plot
   
 
 # Display the combined plot
 print(combined_plot)
+# prints them side by side
+# new test
+
+# Create the primary NDVI line plot
+
+
+# Create the secondary phenophase boxplot and flip it horizontally
+phenophase_plot <- ggplot(overall2, aes(x = phase_DATE, y = plot)) +
+  geom_boxplot(aes(fill = interaction(Spp, obs))) +
+  scale_fill_manual(values = c("lightgreen", "darkgreen", "yellow", "orange", "pink", "purple", "blue"),
+                    breaks = c("SALARC.transect", "SALARC.phenocam", "DRYINT.transect", "DRYINT.phenocam",
+                               "ERIVAG.transect", "ERIVAG.phenocam", "SNOW.phenocam"),
+                    labels = c("Sal.Arc. transect", "Sal.Arc. phenocam", "Dry.Int. transect",
+                               "Dry.Int. phenocam", "Eri.Vag. transect", "Eri.Vag phenocam",
+                               "Snow phenocam")) +
+  theme_classic() +
+  labs(fill = "Observation type")+
+  geom_smooth(data=s2_ndvisf,aes(x=doi, y = NDVI_20m, color = factor(year))) +
+  scale_y_continuous(name = "NDVI",
+                     sec.axis = sec_axis(~ ., name = "Phenophase")) + # Secondary axis
+  scale_color_manual(values = c("blue", "green", "orange", "purple")) +
+  theme_classic() +
+  labs(color = "Year")
+
+print(phenophase_plot)
+
+# Combine the plots using ggplot's layering
+combined_plot <-phenophase_plot + ndvi_plot
+
+
+# Display the combined plot
+print(combined_plot)
+
+#### calculate recurrence times for sentinel-2 and modis
+# sentinel
+#transform doi and year columns into dates
+s2_ndvisf$date <- as.Date(s2_ndvisf$doi-1, origin=paste0(s2_ndvisf$year,"-01-01"))
+#calculate difference in days between consecutive days
+s2_ndvisf$recurrence <- c(NA,diff(s2_ndvisf$date))
+#calculate min, max and average, ignoring 0's as those are from different tiles taken the same day
+s2_recurrence <- na.omit(s2_ndvisf$recurrence)
+s2_recurrence <- s2_recurrence[s2_recurrence!=0]
+
+min_rec <- min(s2_recurrence)
+max_rec <- max(s2_recurrence)
+avg_rec <- mean(s2_recurrence)
+sd_rec <- sd(s2_recurrence)
+
+s2_rec_summer <- s2_recurrence[s2_recurrence <200]
+min_sum <- min(s2_rec_summer)
+max_sum <- max(s2_rec_summer)
+avg_sum <- mean(s2_rec_summer)
+sd_sum <- sd(s2_rec_summer)
