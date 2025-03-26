@@ -1,7 +1,7 @@
 ### 3. Compare transect and phenocam data with satellite data ###
 ### Geerte de Jong, geerte.de.jong@bioenv.gu.se ###
-### Phenocam Project with Geerte de Jong, Joe Boyle, Maude Grenier & Elise Gallois ###
-### Date: 16th March 2021 ###
+### Phenocam Project with Geerte de Jong, Joe Boyle, Maude Grenier, Elise Gallois, Anne Bjorkman & Isla Myers-Smith ###
+### Date: 26th March 2025 ###
 
 #### LOAD PACKAGES  #####
 

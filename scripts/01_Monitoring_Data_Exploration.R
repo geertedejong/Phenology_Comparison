@@ -1,7 +1,7 @@
 ### 1. Phenology Monitoring Exploration and Preliminary Figures ###
 ### Elise Gallois, elise.gallois94@gmail.com ###
-### Phenocam Project with Geerte de Jong, Joe Boyle, Maude Grenier & Elise Gallois ####
-### Date: 9th November 2020 ###
+### Phenocam Project with Geerte de Jong, Joe Boyle, Maude Grenier, Elise Gallois, Anne Bjorkman & Isla Myers-Smith ####
+### Date: 26th March 2025 ###
 
 #### LOAD PACKAGES  #####
 

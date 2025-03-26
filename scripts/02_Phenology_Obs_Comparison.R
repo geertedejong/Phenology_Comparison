@@ -1,7 +1,7 @@
 ### 2. Compare transect and phenocam data ###
 ### Elise Gallois, elise.gallois94@gmail.com ###
-### Phenocam Project with Geerte de Jong, Joe Boyle, Maude Grenier & Elise Gallois ####
-### Date: 17th February 2021 ###
+### Phenocam Project with Geerte de Jong, Joe Boyle, Maude Grenier, Elise Gallois, Anne Bjorkman & Isla Myers-Smith ####
+### Date: 26th March 2025 ###
 
 #### LOAD PACKAGES  #####
 
