@@ -15,7 +15,7 @@ library(hrbrthemes)
 library(purrr)
 library(broom)  
 
-#### LOAD FULL PHENOLOGY DATA DATA ####
+#### LOAD FULL PHENOLOGY DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
 
 str(pheno)
@@ -196,7 +196,7 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
     labs(x = "Observation type", y = "DOY (2016 - 2019)", 
          title = title, fill = "Observation type") +
     theme_classic() +
-    theme(legend.position = "none") +
+    theme(legend.position = "right") +
     annotate("text", x = Inf, y = annotation_y, 
              label = paste("F =", round(f_statistic, 2), "\n p =", format.pval(p_value)), 
              hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")

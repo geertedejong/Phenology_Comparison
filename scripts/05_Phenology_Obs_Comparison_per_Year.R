@@ -20,7 +20,7 @@ library(ggpattern)
 library(forcats)
 library(RColorBrewer)
 
-#### LOAD FULL PHENOLOGY DATA DATA ####
+#### LOAD FULL PHENOLOGY DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
 pheno_clean <- read.csv(file = "data/phenology_transect_cam_CLEAN.csv")
 s2    <- read.csv(file = "data/S2QHIphenocam.csv")
@@ -48,7 +48,7 @@ pheno_filtered <- pheno_clean %>%
 
 pheno <- pheno %>% select(-Q_ID)
 # i want to remove duplicates in pheno
-pheno_clean <- pheno[!duplicated(pheno[c('Spp', 'Plot.ID', 'Year', 'ind.ID', 'phase_ID', 'phase_DATE')]), ]
+# pheno_clean <- pheno[!duplicated(pheno[c('Spp', 'Plot.ID', 'Year', 'ind.ID', 'phase_ID', 'phase_DATE')]), ]
 
 # list of all phases
 phases <- list(
@@ -67,93 +67,53 @@ phases <- list(
 
 # Function to generate boxplot and run model
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
-  # Filter the data for the correct phase and year range, and filter by species
+  # Filter data
   filtered_data <- df %>%
-    filter(phase_ID == phase_id,  # Filter by phase ID
-           Year >= 2016, Year <= 2019,  # Filter by year range
-           if (!is.null(species)) Spp == species else TRUE)  # filter by species
+    filter(phase_ID == phase_id, Year %in% 2016:2019, if (!is.null(species)) Spp == species else TRUE) %>%
+    mutate(obs = ifelse(obs == "transect", "in-situ", obs))
   
-  # Debugging: Print filtered data summary
-  print(paste("Phase:", phase_id, "Species:", ifelse(is.null(species), "All", species)))
-  print(paste("Number of rows:", nrow(filtered_data)))
-  print(paste("Unique obs:", unique(filtered_data$obs)))
+  # Calculate summary statistics
+  doy_stats <- filtered_data %>%
+    group_by(obs) %>%
+    summarise(mean_DOY = mean(phase_DATE, na.rm = TRUE),
+              sd_DOY = sd(phase_DATE, na.rm = TRUE), .groups = "drop")
   
-    # Calculate DOY differences (pairwise for each obs)
-    doy_differences <- filtered_data %>%
-      group_by(obs) %>%
-      summarise(mean_DOY = mean(phase_DATE, na.rm = TRUE),
-                sd_DOY = sd(phase_DATE, na.rm = TRUE),
-                .groups = "drop")
-    
-    # Summary statistics for differences between obs
-    overall_mean_diff <- abs(diff(doy_differences$mean_DOY))
-    overall_sd_diff <- sqrt(sum(doy_differences$sd_DOY^2) / length(doy_differences$sd_DOY))
-    
-    # Use lmer for mixed model
-    full_model <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action = na.omit)
-    null_model <- lmer(phase_DATE ~ 1 + (1|Year), data = filtered_data, na.action = na.omit)
-    
-    # Likelihood ratio test
-    lrt_result <- anova(full_model, null_model)
-    chi_square_statistic <- lrt_result[2, "Chisq"]
-    p_value <- lrt_result[2, "Pr(>Chisq)"]
-    
-    annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE)
-    
-    # modeled data means and plow, phigh
-    newdat <- expand.grid(obs=c("transect", "phenocam"), phase_DATE=0)
-    newdat$phase_DATE <- predict(full_model, newdat, re.form=NA)
-    
-    print(newdat)
-    
-    mm <- model.matrix(terms(full_model),newdat)
-    pvarl <- diag(mm %*% tcrossprod(vcov(full_model),mm))
-    
-    newdat <- data.frame(
-      newdat,
-      plo = newdat$phase_DATE-2*sqrt(pvarl),
-      phi = newdat$phase_DATE+2*sqrt(pvarl)
-    )
-    
-    print(newdat)
-    
-    # ggplot function
-    plot <- filtered_data %>%
-      ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
-      # Boxplot for observed data
-      #geom_boxplot(alpha = 0.8, outlier.colour = NA, width = 0.5) +
-      
-      # Jittered raw points for observed data
-      geom_jitter(width = 0.2, size = 2, alpha = 0.2) +
-      
-      # plot modeled data
-      geom_pointrange(data = newdat, 
-                      aes(x = obs, y = phase_DATE, ymin = plo, ymax = phi), 
-                      fill = obs, 
-                      col = obs,
-                      size = 2, 
-                      fatten = 3, 
-                      inherit.aes = FALSE) +
-      # Theme and styling
-      hrbrthemes::scale_fill_ipsum() +
-      hrbrthemes::scale_colour_ipsum() +
-      labs(x = "Observation method", 
-           y = "DOY (2016 - 2019)", 
-           title = title, 
-           fill = "Observation method") +
-      theme_classic() +
-      theme(legend.position = "none") +
-      
-      # Add annotation for p-value
-      annotate("text", x = Inf, y = annotation_y, 
-               label = paste("\n p =", format.pval(p_value)), 
-               hjust = 1.1, vjust = 0.3, size = 4, color = "black", fontface = "italic")
-    
-    return(list(plot = plot, 
-                p_value = p_value, 
-                mean_diff = overall_mean_diff, 
-                sd_diff = overall_sd_diff))
+  mean_diff <- abs(diff(doy_stats$mean_DOY))
+  sd_diff <- sqrt(mean(doy_stats$sd_DOY^2))
+  
+  # Fit mixed models
+  full_model <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action = na.omit)
+  null_model <- lmer(phase_DATE ~ 1 + (1|Year), data = filtered_data, na.action = na.omit)
+  
+  # Likelihood ratio test
+  lrt <- anova(full_model, null_model)
+  p_value <- lrt[2, "Pr(>Chisq)"]
+  
+  # Model predictions
+  newdat <- expand.grid(obs = unique(filtered_data$obs)) %>%
+    mutate(phase_DATE = predict(full_model, ., re.form = NA))
+  
+  mm <- model.matrix(terms(full_model), newdat)
+  pvarl <- diag(mm %*% tcrossprod(vcov(full_model), mm))
+  
+  newdat <- newdat %>%
+    mutate(plo = phase_DATE - 2 * sqrt(pvarl),
+           phi = phase_DATE + 2 * sqrt(pvarl))
+  
+  # Create plot
+  plot <- ggplot(filtered_data, aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
+    geom_jitter(width = 0.2, size = 2, alpha = 0.2) +
+    geom_pointrange(data = newdat, aes(x = obs, y = phase_DATE, ymin = plo, ymax = phi, color = obs, fill = obs),
+                    size = 1, fatten = 1.5, inherit.aes = FALSE) +
+    hrbrthemes::scale_fill_ipsum() + hrbrthemes::scale_colour_ipsum() +
+    labs(x = "Observation method", y = "DOY (2016 - 2019)", title = title) +
+    theme_classic() + theme(legend.position = "none") +
+    annotate("text", x = Inf, y = max(filtered_data$phase_DATE, na.rm = TRUE),
+             label = paste("p =", format.pval(p_value)), hjust = 1.1, vjust = 0.3, size = 4, fontface = "italic")
+  
+  return(list(plot = plot, p_value = p_value, mean_diff = mean_diff, sd_diff = sd_diff))
 }
+
 
 # Run the function on phases
 results <- map(phases, function(phase) {
@@ -340,7 +300,7 @@ s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclud
 #### combination plot of cams, obs and NDVI for S2####
 (comb_plot <- ggplot()+
    #geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color=factor(year)), alpha=0.3, size=1)+
-   geom_smooth(data=s2_ndvisf,aes(x=doi, y=NDVI_20m, color=factor(year))) +
+   geom_smooth(data=s2_ndvisf,aes(x=doi, y=NDVI_20m, color=factor(year), fill=factor(year))) +
    hrbrthemes::scale_color_ipsum() +
    geom_vline(xintercept=cam_sf16, linetype='dashed',color='orange',size=1)+
    geom_vline(xintercept=cam_senescence16, linetype='dashed',color='orange',size=1)+
@@ -370,7 +330,7 @@ ggsave(comb_plot, filename = "figures/cam_obs_ndvi_greencurv.png", height = 10, 
 #### combination plot of cams, obs and NDSI for S2####
 (comb_plot <- ggplot()+
    #geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color=factor(year)), alpha=0.3, size=1)+
-   geom_smooth(data=s2_ndsi,aes(x=doi, y=NDSI_20m, color=factor(year))) +
+   geom_smooth(data=s2_ndsi,aes(x=doi, y=NDSI_20m, color=factor(year),fill=factor(year))) +
    hrbrthemes::scale_color_ipsum() +
    geom_vline(xintercept=cam_sf16, linetype='dashed',color='orange',size=1)+
    geom_vline(xintercept=cam_senescence16, linetype='dashed',color='orange',size=1)+
@@ -400,7 +360,7 @@ ggsave(comb_plot, filename = "figures/cam_obs_ndsi_greencurv.png", height = 10, 
 #### combination plot of cams, obs and NDVI for modis####
 (comb_plot <- ggplot()+
    #geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color=factor(year)), alpha=0.3, size=1)+
-   geom_smooth(data=ndvi_m,aes(x=doy, y=NDVI, color=factor(year))) +
+   geom_smooth(data=ndvi_m,aes(x=doy, y=NDVI, color=factor(year),fill=factor(year))) +
    hrbrthemes::scale_color_ipsum() +
    geom_vline(xintercept=cam_sf16, linetype='dashed',color='orange',size=1)+
    geom_vline(xintercept=cam_senescence16, linetype='dashed',color='orange',size=1)+
