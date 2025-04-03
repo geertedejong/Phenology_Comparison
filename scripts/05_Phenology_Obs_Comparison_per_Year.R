@@ -107,12 +107,62 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
                     size = 1, fatten = 1.5, inherit.aes = FALSE) +
     hrbrthemes::scale_fill_ipsum() + hrbrthemes::scale_colour_ipsum() +
     labs(x = "Observation method", y = "DOY (2016 - 2019)", title = title) +
-    theme_classic() + theme(legend.position = "none") +
+    theme_classic() + theme(legend.position = "right") +
     annotate("text", x = Inf, y = max(filtered_data$phase_DATE, na.rm = TRUE),
              label = paste("p =", format.pval(p_value)), hjust = 1.1, vjust = 0.3, size = 4, fontface = "italic")
   
   return(list(plot = plot, p_value = p_value, mean_diff = mean_diff, sd_diff = sd_diff))
 }
+
+anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
+  # Filter data
+  filtered_data <- df %>%
+    filter(phase_ID == phase_id, Year %in% 2016:2019, if (!is.null(species)) Spp == species else TRUE) %>%
+    mutate(obs = ifelse(obs == "transect", "in-situ", obs))
+  
+  # Calculate summary statistics
+  doy_stats <- filtered_data %>%
+    group_by(obs) %>%
+    summarise(mean_DOY = mean(phase_DATE, na.rm = TRUE),
+              sd_DOY = sd(phase_DATE, na.rm = TRUE), .groups = "drop")
+  
+  mean_diff <- abs(diff(doy_stats$mean_DOY))
+  sd_diff <- sqrt(mean(doy_stats$sd_DOY^2))
+  
+  # Fit mixed models
+  full_model <- lmer(phase_DATE ~ obs + (1|Year), data = filtered_data, na.action = na.omit)
+  null_model <- lmer(phase_DATE ~ 1 + (1|Year), data = filtered_data, na.action = na.omit)
+  
+  # Likelihood ratio test
+  lrt <- anova(full_model, null_model)
+  p_value <- lrt[2, "Pr(>Chisq)"]
+  
+  # Model predictions
+  newdat <- expand.grid(obs = unique(filtered_data$obs)) %>%
+    mutate(phase_DATE = predict(full_model, ., re.form = NA))
+  
+  mm <- model.matrix(terms(full_model), newdat)
+  pvarl <- diag(mm %*% tcrossprod(vcov(full_model), mm))
+  
+  newdat <- newdat %>%
+    mutate(plo = phase_DATE - 2 * sqrt(pvarl),
+           phi = phase_DATE + 2 * sqrt(pvarl))
+  
+  # Create plot
+  plot <- ggplot(filtered_data, aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
+    geom_jitter(width = 0.2, size = 2, alpha = 0.2, aes(shape = "Observed")) +
+    geom_pointrange(data = newdat, aes(x = obs, y = phase_DATE, ymin = plo, ymax = phi, color = obs, fill = obs, shape = "Modeled"),
+                    size = 1, fatten = 1.5, inherit.aes = FALSE) +
+    scale_shape_manual(name = "Data Type", values = c("Observed" = 16, "Modeled" = 17)) +
+    hrbrthemes::scale_fill_ipsum() + hrbrthemes::scale_colour_ipsum() +
+    labs(x = "Observation method", y = "DOY (2016 - 2019)", title = title, shape = "Data Type") +
+    theme_classic() + theme(legend.position = "right") +
+    annotate("text", x = Inf, y = max(filtered_data$phase_DATE, na.rm = TRUE),
+             label = paste("p =", format.pval(p_value)), hjust = 1.1, vjust = 0.3, size = 4, fontface = "italic")
+  
+  return(list(plot = plot, p_value = p_value, mean_diff = mean_diff, sd_diff = sd_diff))
+}
+
 
 
 # Run the function on phases
