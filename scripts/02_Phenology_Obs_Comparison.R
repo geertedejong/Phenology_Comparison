@@ -164,6 +164,46 @@ pheno <- pheno %>%
 
 #### ANOVA - Frequentist approach ####
 # function to run ANOVA and generate boxplots with stats included
+# anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
+#   filtered_data <- df %>% 
+#     filter(phase_ID == phase_id, Year >= 2016 & Year <= 2019) 
+#   
+#   if (!is.null(species)) {
+#     filtered_data <- filtered_data %>% filter(Spp == species)
+#   }
+#   
+#   anova_result <- aov(phase_DATE ~ obs, data = filtered_data)
+#   anova_summary <- tidy(anova_result)
+#   
+#   # extract  f-statistic and p-value
+#   f_statistic <- anova_summary %>% 
+#     filter(term == "obs") %>%
+#     pull(statistic)
+#   p_value <- anova_summary %>% 
+#     filter(term == "obs") %>%
+#     pull(p.value)
+# 
+#   annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE) + 10
+#   
+#   # ggplot function
+#   plot <- filtered_data %>%
+#     ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
+#     geom_boxplot(alpha = 0.8, outlier.colour = NA) + # Add transparency to the boxes
+#     geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
+#     hrbrthemes::scale_fill_ipsum() +
+#     hrbrthemes::scale_colour_ipsum() +
+#     #stat_compare_means(method = "anova") +
+#     labs(x = "Observation type", y = "DOY (2016 - 2019)", 
+#          title = title, fill = "Observation type") +
+#     theme_classic() +
+#     theme(legend.position = "right") +
+#     annotate("text", x = Inf, y = annotation_y, 
+#              label = paste("F =", round(f_statistic, 2), "\n p =", format.pval(p_value)), 
+#              hjust = 1.1, vjust = 1.5, size = 4, color = "black", fontface = "italic")
+#   
+#   return(list(plot = plot, summary = anova_summary))
+# }
+
 anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   filtered_data <- df %>% 
     filter(phase_ID == phase_id, Year >= 2016 & Year <= 2019) 
@@ -172,27 +212,30 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
     filtered_data <- filtered_data %>% filter(Spp == species)
   }
   
-  anova_result <- aov(phase_DATE ~ obs, data = filtered_data)
+  # Check for enough levels
+  if (nrow(filtered_data) == 0 || length(unique(filtered_data$obs)) < 2) {
+    warning(glue::glue("Skipping: Not enough levels in 'obs' for {title} (phase {phase_id}, species {species})"))
+    return(NULL)
+  }
+  
+  anova_result <- aov(phase_DATE ~ as.factor(obs), data = filtered_data)
   anova_summary <- tidy(anova_result)
   
-  # extract  f-statistic and p-value
   f_statistic <- anova_summary %>% 
     filter(term == "obs") %>%
     pull(statistic)
   p_value <- anova_summary %>% 
     filter(term == "obs") %>%
     pull(p.value)
-
+  
   annotation_y <- max(filtered_data$phase_DATE, na.rm = TRUE) + 10
   
-  # ggplot function
   plot <- filtered_data %>%
     ggplot(aes(x = obs, y = phase_DATE, fill = obs, col = obs)) +
-    geom_boxplot(alpha = 0.8, outlier.colour = NA) + # Add transparency to the boxes
+    geom_boxplot(alpha = 0.8, outlier.colour = NA) +
     geom_jitter(width = 0.2, size = 2, alpha = 0.2) + 
     hrbrthemes::scale_fill_ipsum() +
     hrbrthemes::scale_colour_ipsum() +
-    #stat_compare_means(method = "anova") +
     labs(x = "Observation type", y = "DOY (2016 - 2019)", 
          title = title, fill = "Observation type") +
     theme_classic() +
@@ -204,14 +247,15 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
   return(list(plot = plot, summary = anova_summary))
 }
 
+
 # list of all phases
 phases <- list(
-  list(phase_id = "P1", species = NULL, title = "First Day 100% Snow Free"),
-  list(phase_id = "P2", species = "ERIVAG", title = "First E. vaginatum Bud Appearance"),
-  list(phase_id = "P2", species = "DRYINT", title = "First D. integrifolia Bud Appearance"),
-  list(phase_id = "P3", species = "DRYINT", title = "First D. integrifolia Open Flower"),
-  list(phase_id = "P4", species = "DRYINT", title = "First D. integrifolia Petal Shed"),
-  list(phase_id = "P5", species = "DRYINT", title = "First D. integrifolia Twisting of Filament"),
+  list(phase_id = "P1", species = "SNOW", title = "First Day 100% Snow Free"),
+  list(phase_id = "P2", species = "ERIVAG", title = "E. vaginatum First Bud Appearance"),
+  list(phase_id = "P2", species = "DRYINT", title = "D. integrifolia First Bud Appearance"),
+  list(phase_id = "P3", species = "DRYINT", title = "D. integrifolia First Open Flower"),
+  list(phase_id = "P4", species = "DRYINT", title = "D. integrifolia First Petal Shed"),
+  list(phase_id = "P5", species = "DRYINT", title = "D. integrifolia First Twisting of Filament"),
   list(phase_id = "P2", species = "SALARC", title = "S. arctica First Leaf Bud Burst"),
   list(phase_id = "P5", species = "SALARC", title = "S. arctica First Leaf Turns Yellow"),
   list(phase_id = "P6", species = "SALARC", title = "S. arctica Last Leaf Turns Yellow")
