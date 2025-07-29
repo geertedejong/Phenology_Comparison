@@ -23,12 +23,14 @@ library(RColorBrewer)
 #### LOAD FULL PHENOLOGY DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
 pheno_clean <- read.csv(file = "data/phenology_transect_cam_CLEAN.csv")
-s2    <- read.csv(file = "data/S2QHIphenocam.csv")
+s2    <-  read.csv(file = "data/S2QHIphenocam.csv")
 
 str(pheno_clean)
 
+
 s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.2 to exclude negatives and snow
 s2_ndsi <- subset(s2, NDSI_20m>0.4)
+
 
 #### SNOW FREE DAY - S3 to P1 ####
 # rename column s3 to p1 to match transect data
@@ -259,7 +261,8 @@ overall_plot_summeronly
 
 #### Figure 2 Satellites and snow-free obs ####
 
-s2    <- read.csv(file = "data/S2QHIphenocam.csv")
+#s2    <- read.csv(file = "data/S2QHIphenocam.csv") 
+#! already read in above
 
 ## prep dash lines
 # filter for snow free on camera
@@ -289,10 +292,48 @@ salsen1_19 <- pheno %>% filter(Spp %in% "SALARC") %>%
 
 
 #### some cleaning ####
-s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclude negatives and snow
+#s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclude negatives and snow
+
+#NDGI ----
+
+library(lubridate)
+
+s3 <- read.csv(file = "data/MODIS_NDVI_NDGI_NDSI_TimeSeries_timedate.csv")
+
+s3 <- s3 %>%
+  mutate(
+    date_parsed = ymd(date),
+    year = year(date_parsed),
+    doy  = yday(date_parsed)
+  )
+
+(s3_plot <- s3 %>%
+    ggplot() +
+    aes(x = doy, y = NDGI_MODIS) +
+  geom_smooth() +
+    geom_point(aes(color=as.factor(longitude)))+ #color=name
+    hrbrthemes::scale_fill_ipsum() +
+    labs(y = "NDGI", x = "DOY (2016 - 2019)", fill = "year") +
+    xlim(120,290) +
+    facet_grid(year~.) +
+    theme_classic() +
+    theme(legend.position ="right"))
+
+# average geom smooth and colors for camera locations, average for all years
+(s3_plot <- s3 %>%
+    ggplot() +
+    aes(x = doy, y = NDGI_MODIS) +
+    geom_smooth() +
+    geom_point(aes(color=year))+
+    hrbrthemes::scale_fill_ipsum() +
+    labs(y = "NDGI", x = "DOY (2016 - 2019)", fill = "year") +
+    xlim(120,290) +
+    scale_y_continuous(name = NULL, sec.axis = sec_axis(~., name = "NDGI")) +
+    theme_classic() +
+    theme(legend.position = "none"))
 
 #### Exploration plot of S2 data ####
-# NDVI
+# NDVI ----
 # average geom smooth and colors for camera locations, separate years
 (s2_plot <- s2_ndvisf %>%
    ggplot() +
@@ -300,7 +341,7 @@ s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclud
    geom_smooth() +
    geom_point(aes(color=name))+
    hrbrthemes::scale_fill_ipsum() +
-   labs(y = "NDVI", x = "DOY (2016 - 2019)", fill = "year") +
+   labs(y = "NDGI", x = "DOY (2016 - 2019)", fill = "year") +
    xlim(120,290) +
    facet_grid(year~.) +
    theme_classic() +
@@ -319,7 +360,7 @@ s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclud
     theme_classic() +
     theme(legend.position = "none"))
 
-# NDSI
+# NDSI ----
 # average geom smooth and colors for camera locations, separate years
 (s2_plot <- s2_ndsi %>%
     ggplot() +
@@ -449,6 +490,37 @@ ggsave(comb_plot, filename = "figures/cam_obs_ndsi_greencurv.png", height = 10, 
 )
 
 ggsave(comb_plot, filename = "figures/cam_obs_ndvi_greencurv_modis.png", height = 10, width = 12)
+
+#### combination plot of cams, obs and NDGI for S2 (S3)####
+(comb_plot <- ggplot()+
+   #geom_point(data=s2_ndvisf, aes(x=doi, y=NDVI_20m, color=factor(year)), alpha=0.3, size=1)+
+   geom_smooth(data=s3[s3$year < 2020 & s3$NDVI_MODIS>0.2,],aes(x=doy, y=NDGI_MODIS, color=factor(year), fill=factor(year)), alpha=0.2) +
+   hrbrthemes::scale_color_ipsum() +geom_vline(xintercept=cam_sf16, linetype='dashed',color='orange',size=1)+
+   geom_vline(xintercept=cam_senescence16, linetype='dashed',color='orange',size=1)+
+   geom_vline(xintercept=cam_sf17, linetype='dashed',color='green',size=1)+
+   geom_vline(xintercept=cam_senescence17, linetype='dashed',color='green',size=1)+
+   geom_vline(xintercept=cam_sf18, linetype='dashed',color='blue',size=1)+
+   geom_vline(xintercept=cam_senescence18, linetype='dashed',color='blue',size=1)+
+   geom_vline(xintercept=cam_sf19, linetype='dashed',color='purple',size=1)+
+   xlim(100,300)+
+   ylim(0.1,1)+
+   labs(y = "NDGI", x = "DOY (2016 - 2019)", color= "year") +
+   annotate(x = cam_sf16-20, y = 1, label = "snow-free cam", vjust = 0, geom = "label",size = 3)+
+   annotate(x = cam_sf16, y = 1, label = "2016", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_sf17, y = 0.92, label = "2017", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_sf18, y = 0.84, label = "2018", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_sf19, y = 0.76, label = "2019", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_senescence16-20, y = 1, label = "senescence cam", vjust = 0, geom = "label",size = 3)+
+   annotate(x = cam_senescence16, y = 1, label = "2016", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_senescence17, y = 0.92, label = "2017", vjust = 0, angle= 90, geom = "label",size = 3)+
+   annotate(x = cam_senescence18, y = 0.84, label = "2018", vjust = 0, angle= 90, geom = "label",size = 3)+
+   theme_classic() +
+   scale_color_manual(name= "Year", labels = c("2016", "2017", "2018", "2019"), values= c("orange", "green", "blue", "purple"))+
+   scale_fill_manual(name= "Year", labels = c("2016", "2017", "2018", "2019"), values= c("orange", "green", "blue", "purple"))+
+   theme(legend.position = "right")
+)
+
+ggsave(comb_plot, filename = "figures/cam_obs_ndgi_greencurv.png", height = 10, width = 12)
 
 #### Figure 3 big plot combining phenocams, transect and sat data ####
 
