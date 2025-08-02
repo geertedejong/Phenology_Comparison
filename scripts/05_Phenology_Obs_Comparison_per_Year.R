@@ -23,13 +23,17 @@ library(RColorBrewer)
 #### LOAD FULL PHENOLOGY DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
 pheno_clean <- read.csv(file = "data/phenology_transect_cam_CLEAN.csv")
-s2    <-  read.csv(file = "data/S2QHIphenocam.csv")
+s2    <- read.csv(file = "data/S2QHIphenocam.csv")
 
 str(pheno_clean)
 
 
-s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.2 to exclude negatives and snow
-s2_ndsi <- subset(s2, NDSI_20m>0.4)
+#s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.2 to exclude negatives and snow
+#s2_ndsi <- subset(s2, NDSI_20m>0.4)
+
+s2_ndvisf<- subset(s2, NDVI_20m) #remove all NDVI values below o.2 to exclude negatives and snow
+s2_ndsi <- subset(s2, NDSI_20m)
+
 
 
 #### SNOW FREE DAY - S3 to P1 ####
@@ -292,7 +296,8 @@ salsen1_19 <- pheno %>% filter(Spp %in% "SALARC") %>%
 
 
 #### some cleaning ####
-#s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclude negatives and snow
+
+#s2_ndvisf <- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.1 to exclude negatives and snow
 
 #NDGI ----
 
@@ -332,8 +337,10 @@ s3 <- s3 %>%
     theme_classic() +
     theme(legend.position = "none"))
 
+s2_ndvisf<- subset(s2, NDVI_20m) #remove all NDVI values below o.1 to exclude negatives and snow
+
 #### Exploration plot of S2 data ####
-# NDVI ----
+# NDVI
 # average geom smooth and colors for camera locations, separate years
 (s2_plot <- s2_ndvisf %>%
    ggplot() +
@@ -657,3 +664,4 @@ min_sum <- min(s2_rec_summer)
 max_sum <- max(s2_rec_summer)
 avg_sum <- mean(s2_rec_summer)
 sd_sum <- sd(s2_rec_summer)
+
