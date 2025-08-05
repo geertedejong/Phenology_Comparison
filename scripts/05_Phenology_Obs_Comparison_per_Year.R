@@ -19,6 +19,7 @@ library(lmerTest)
 library(ggpattern)
 library(forcats)
 library(RColorBrewer)
+library(ggtext)
 
 #### LOAD FULL PHENOLOGY DATA ####
 pheno <- read.csv(file = "data/phenology_transect_cam.csv")
@@ -59,14 +60,14 @@ pheno <- pheno %>% select(-Q_ID)
 # list of all phases
 phases <- list(
   list(phase_id = "P1", species = NULL, title = "First Day 100% Snow Free"),
-  list(phase_id = "P2", species = "ERIVAG", title = "E. vaginatum First Bud Visible"),
-  list(phase_id = "P2", species = "DRYINT", title = "D. integrifolia First Bud Visible"),
-  list(phase_id = "P3", species = "DRYINT", title = "D. integrifolia First Open Flower"),
-  list(phase_id = "P4", species = "DRYINT", title = "D. integrifolia First Petal Shed"),
-  list(phase_id = "P5", species = "DRYINT", title = "D. integrifolia First Filament Twist"),
-  list(phase_id = "P2", species = "SALARC", title = "S. arctica First Leaf Bud Burst"),
-  list(phase_id = "P5", species = "SALARC", title = "S. arctica First Leaf Turns Yellow"),
-  list(phase_id = "P6", species = "SALARC", title = "S. arctica Last Leaf Turns Yellow")
+  list(phase_id = "P2", species = "ERIVAG", title = "<i>E. vaginatum</i> First Bud Visible"),
+  list(phase_id = "P2", species = "DRYINT", title = "<i>D. integrifolia</i> First Bud Visible"),
+  list(phase_id = "P3", species = "DRYINT", title = "<i>D. integrifolia</i> First Open Flower"),
+  list(phase_id = "P4", species = "DRYINT", title = "<i>D. integrifolia</i> First Petal Shed"),
+  list(phase_id = "P5", species = "DRYINT", title = "<i>D. integrifolia</i> First Filament Twist"),
+  list(phase_id = "P2", species = "SALARC", title = "<i>S. arctica</i> First Leaf Bud Burst"),
+  list(phase_id = "P5", species = "SALARC", title = "<i>S. arctica</i> First Leaf Turns Yellow"),
+  list(phase_id = "P6", species = "SALARC", title = "<i>S. arctica</i> Last Leaf Turns Yellow")
 )
 
 #### Figure 1 comparative boxplots ####
@@ -166,7 +167,7 @@ anova_boxplot <- function(df, phase_id, species = NULL, title = "") {
     labs(x = "", y = "DOY (2016 - 2019)", title = title, shape = "Data Type") +
     theme_classic() + theme(legend.position = "none") +
     annotate("text", x = Inf, y = max(filtered_data$phase_DATE, na.rm = TRUE), label = paste("p =", format.pval(round(p_value, digits=3),digits=3, nsmall = 3)), hjust = 1.1, vjust = 0.3, size = 6, fontface = "italic")+
-    theme(plot.title=element_text(color="black", size=18, vjust=1.25)) +
+    theme(plot.title = ggtext::element_markdown(size = 18, color = "black", vjust = 1.25)) +
     theme(axis.text.x=element_text(size=20,color="black", margin=margin(4,4,5,4,"pt"))) +
     theme(axis.text.y=element_text(size=20,color="black", margin=margin(4,4,5,4,"pt"))) +
     theme(axis.title.x=element_text(size=20,color="black", margin=margin(10,0,0,0))) +
