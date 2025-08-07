@@ -32,8 +32,8 @@ str(pheno_clean)
 #s2_ndvisf<- subset(s2, NDVI_20m>0.2) #remove all NDVI values below o.2 to exclude negatives and snow
 #s2_ndsi <- subset(s2, NDSI_20m>0.4)
 
-s2_ndvisf<- subset(s2, NDVI_20m) #remove all NDVI values below o.2 to exclude negatives and snow
-s2_ndsi <- subset(s2, NDSI_20m)
+#s2_ndvisf<- subset(s2, NDVI_20m) #remove all NDVI values below o.2 to exclude negatives and snow
+#s2_ndsi <- subset(s2, NDSI_20m)
 
 
 
@@ -263,6 +263,117 @@ overall_plot + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 overall_plot_summeronly <- plot_boxplot(overall2, phase_DATE, plot, x_limits = c(120, 290), 
                                         title = "Phenophase Chronology")
 overall_plot_summeronly
+
+#### ALTERNATE CHRONOLOGY GRAPH BY ANNE ####
+
+# Update factor levels using Markdown italics
+levels(overall2$plot) <- c(
+  "Snow Free Plot",
+  "*E. vaginatum* Snow Free",
+  "*E. vaginatum* First Flower Bud",
+  "*E. vaginatum* First Pollen visible",
+  "*D. integrifolia* Snow Free",
+  "*D. integrifolia* First White on Bud",
+  "*D. integrifolia* First Open Flower",
+  "*D. integrifolia* Last Petal Shed",
+  "*D. integrifolia* First Filament Twist",
+  "*D. integrifolia* All leaves dead",
+  "*S. arctica* Snow Free",
+  "*S. arctica* First Leaf Bud Burst",
+  "*S. arctica* First Pollen",
+  "*S. arctica* Onset Seed Dispersal",
+  "*S. arctica* First Yellow Leaf",
+  "*S. arctica* Last Green Leaf",
+  "*S. arctica* All Leaves Dead"
+)
+
+
+plot_boxplot <- function(data, x_var, y_var, x_limits = NULL, title = "*Phenology stuff*", xlabel = "DOY (2016 - 2019)", ylabel = "Phenophase") {
+  data %>%
+    ggplot(aes(x = {{ x_var }}, y = {{ y_var }}, fill = interaction(Spp, obs))) +
+    geom_boxplot(show.legend=F) +
+    geom_point(
+      data = data,
+      aes(x = {{ x_var }}, y = Inf, fill = interaction(Spp, obs), color = interaction(Spp, obs)),
+      shape = 21,
+      size = 6,
+      alpha = 0,
+      show.legend = TRUE
+    ) +
+    scale_fill_manual(
+      values = c(
+        "SALARC.transect" = "#A2D5C6",
+        "SALARC.phenocam" = "#317873",
+        "DRYINT.transect" = "#D3BCE3",
+        "DRYINT.phenocam" = "#998ec3",
+        "ERIVAG.transect" = "#F6E3B4",
+        "ERIVAG.phenocam" = "#C19A6B",
+        "SNOW.phenocam" = "#B0C4DE"
+      ),
+      breaks = c(
+        "SALARC.transect", "SALARC.phenocam", 
+        "DRYINT.transect", "DRYINT.phenocam", 
+        "ERIVAG.transect", "ERIVAG.phenocam", 
+        "SNOW.phenocam"
+      ),
+      labels = c(
+        "*S. arctica* transect",
+        "*S. arctica* phenocam",
+        "*D. integrifolia* transect",
+        "*D. integrifolia* phenocam",
+        "*E. vaginatum* transect",
+        "*E. vaginatum* phenocam",
+        "Snow phenocam"
+      )
+    ) +
+    scale_color_manual(
+      values = c(
+        "SALARC.transect" = "black",
+        "SALARC.phenocam" = "black",
+        "DRYINT.transect" = "black",
+        "DRYINT.phenocam" = "black",
+        "ERIVAG.transect" = "black",
+        "ERIVAG.phenocam" = "black",
+        "SNOW.phenocam" = "black"
+      ), guide = "none"
+    ) +
+    
+    # Use custom legend guide for 'fill'
+    guides(fill = guide_legend(
+      override.aes = list(
+        shape = 21,
+        size = 6,
+        alpha = 1,
+        color = "black"
+      )
+    )) +
+    
+    labs(x = xlabel, y = ylabel, title = title, fill = "Observation type") +
+    theme_classic() +
+    theme(
+      legend.position = "right",
+      axis.text.y = ggtext::element_markdown(size = 20),
+      axis.text.x = ggtext::element_markdown(size = 20),
+      plot.title = ggtext::element_markdown(size = 0),
+      axis.title.x = element_text(size = 22, margin = margin(10, 0, 0, 0)),
+      axis.title.y = element_text(size = 22, margin = margin(0, 10, 0, 0)),
+      legend.text = ggtext::element_markdown(size = 20, lineheight = 1.2),
+      legend.title = element_text(size = 22),
+      legend.key.size = unit(1.5, "lines")
+    ) +
+    { if (!is.null(x_limits)) xlim(x_limits) else NULL }
+}
+    
+
+# Full date range plot
+overall_plot <- plot_boxplot(overall2, phase_DATE, plot)
+overall_plot + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Summer-only plot
+overall_plot_summeronly <- plot_boxplot(overall2, phase_DATE, plot, x_limits = c(120, 290))
+overall_plot_summeronly
+
+ggsave(overall_plot_summeronly, filename = "figures/chronology_plot_summeronly.png", height = 12, width = 21)
 
 #### Figure 2 Satellites and snow-free obs ####
 
